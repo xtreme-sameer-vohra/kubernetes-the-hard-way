@@ -39,4 +39,4 @@ This tutorial assumes that you have also installed Vagrant.
 
 > Enable synchronize-panes by pressing `ctrl+b` followed by `"` to split the window into two panes. In each pane (selectable with mouse), ssh to the host(s) you will be working with.<br>Next type `ctrl+x` at the prompt to begin sync. In sync mode, the dividing line between panes will be red. Everything you type in one pane will be echoed in the other.<br>To disable synchronization type `ctrl+x` again.
 
-Next: [Installing the Client Tools](02-client-tools.md)
+Next: [Compute Resources](02-compute-resources.md)
