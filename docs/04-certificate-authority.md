@@ -13,7 +13,7 @@ In our case we do it on the master-1 node, as we have set it up to be the admini
 
 In this section you will provision a Certificate Authority that can be used to generate additional TLS certificates.
 
-Create a CA certificate, then generate a Certificate Signing Request and use it to create a private key:
+Create a CA private key, then generate a Certificate Signing Request then sign that with its own key to create a self-signed CA certificate:
 
 
 ```bash
@@ -142,6 +142,17 @@ kube-scheduler.key
 kube-scheduler.crt
 ```
 
+### IP Addresses for cluster components
+
+Read the IP addresses of cluster components from the hosts file to shell variables.
+
+```bash
+MASTER_1=$(dig +short master-1)
+MASTER_2=$(dig +short master-2)
+LOADBALANCER=$(dig +short loadbalancer)
+```
+
+
 ### The Kubernetes API Server Certificate
 
 The kube-apiserver certificate requires all names that various components may reach it to be part of the alternate names. These include the different DNS names, and IP addresses such as the master servers IP address, the load balancers IP address, the kube-api service IP address etc.
@@ -164,9 +175,9 @@ DNS.2 = kubernetes.default
 DNS.3 = kubernetes.default.svc
 DNS.4 = kubernetes.default.svc.cluster.local
 IP.1 = 10.96.0.1
-IP.2 = 192.168.56.11
-IP.3 = 192.168.56.12
-IP.4 = 192.168.56.30
+IP.2 = ${MASTER_1}
+IP.3 = ${MASTER_2}
+IP.4 = ${LOADBALANCER}
 IP.5 = 127.0.0.1
 EOF
 ```
@@ -205,8 +216,8 @@ basicConstraints = CA:FALSE
 keyUsage = nonRepudiation, digitalSignature, keyEncipherment
 subjectAltName = @alt_names
 [alt_names]
-IP.1 = 192.168.56.11
-IP.2 = 192.168.56.12
+IP.1 = ${MASTER_1}
+IP.2 = ${MASTER_2}
 IP.3 = 127.0.0.1
 EOF
 ```
@@ -250,6 +261,23 @@ service-account.key
 service-account.crt
 ```
 
+## The Front Proxy Key Pair
+
+Generate client certificate and key
+
+```bash
+{
+  openssl genrsa -out front-proxy-client.key 2048
+  openssl req -new -key front-proxy-client.key -subj "/CN=front-proxy-client" -out front-proxy-client.csr
+  openssl x509 -req -in front-proxy-client.csr -CA ca.crt -CAkey ca.key -CAcreateserial  -out front-proxy-client.crt -days 1000
+}
+```
+Results:
+```
+front-proxy-client.key
+front-proxy-client.crt
+```
+
 
 ## Distribute the Certificates
 
@@ -260,6 +288,7 @@ for instance in master-1 master-2; do
   scp ca.crt ca.key kube-apiserver.key kube-apiserver.crt \
     service-account.key service-account.crt \
     etcd-server.key etcd-server.crt \
+    front-proxy-client.crt front-proxy-client.key \
     ${instance}:~/
 done
 ```
