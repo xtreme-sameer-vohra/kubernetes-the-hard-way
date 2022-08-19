@@ -29,6 +29,41 @@ Download and Install [Vagrant](https://www.vagrantup.com/) on your platform.
 
 This tutorial assumes that you have also installed Vagrant.
 
+
+## Lab Defaults
+
+The labs have been configured with the following networking defaults. If you change any of these after you have deployed any of the lab, you'll need to completely reset it:
+
+```bash
+vagrant destroy -f
+vagrant up
+```
+
+If you do change any of these, please consider that a personal preference and don't submit a PR for it.
+
+### Virtual Machine Network
+
+The network used by the Virtual Box virtual machines is `10.56.0.0/24`.
+
+To change this, edit the [Vagrantfile](../vagrant/Vagrantfile) and set the new value for the network prefix at line 9. This should not overlap any of the other network settings.
+
+### Pod Network
+
+The network used to assign IP addresses to pods is `10.244.0.0/16`.
+
+To change this, open all the `.md` files in the [docs](../docs/) directory in your favourite IDE and do a global replace on<br>
+`POD_CIDR=10.244.0.0/16`<br>
+with the new CDIR range.  This should not overlap any of the other network settings.
+
+### Service Network
+
+The network used to assign IP addresses to Cluster IP services is `10.96.0.0/16`.
+
+To change this, open all the `.md` files in the [docs](../docs/) directory in your favourite IDE and do a global replace on<br>
+`SERVICE_CIDR=10.96.0.0/16`<br>
+with the new CDIR range.  This should not overlap any of the other network settings.
+
+
 ## Running Commands in Parallel with tmux
 
 [tmux](https://github.com/tmux/tmux/wiki) can be used to run commands on multiple compute instances at the same time. Labs in this tutorial may require running the same commands across multiple compute instances, in those cases consider using tmux and splitting a window into multiple panes with synchronize-panes enabled to speed up the provisioning process.
