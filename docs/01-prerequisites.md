@@ -32,7 +32,7 @@ This tutorial assumes that you have also installed Vagrant.
 
 ## Lab Defaults
 
-The labs have been configured with the following networking defaults. If you change any of these after you have deployed any of the lab, you'll need to completely reset it:
+The labs have been configured with the following networking defaults. If you change any of these after you have deployed any of the lab, you'll need to completely reset it and start again from the beginning:
 
 ```bash
 vagrant destroy -f
