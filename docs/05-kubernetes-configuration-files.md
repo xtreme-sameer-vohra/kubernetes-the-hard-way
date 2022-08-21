@@ -11,7 +11,7 @@ In this section you will generate kubeconfig files for the `controller manager`,
 Each kubeconfig requires a Kubernetes API Server to connect to. To support high availability the IP address assigned to the load balancer will be used. In our case it is `192.168.56.30`
 
 ```bash
-LOADBALANCER_ADDRESS=192.168.56.30
+LOADBALANCER=$(dig +short loadbalancer)
 ```
 
 ### The kube-proxy Kubernetes Configuration File
@@ -23,7 +23,7 @@ Generate a kubeconfig file for the `kube-proxy` service:
   kubectl config set-cluster kubernetes-the-hard-way \
     --certificate-authority=ca.crt \
     --embed-certs=true \
-    --server=https://${LOADBALANCER_ADDRESS}:6443 \
+    --server=https://${LOADBALANCER}:6443 \
     --kubeconfig=kube-proxy.kubeconfig
 
   kubectl config set-credentials system:kube-proxy \
@@ -154,6 +154,7 @@ admin.kubeconfig
 
 Reference docs for kubeconfig [here](https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/)
 
+##
 
 ## Distribute the Kubernetes Configuration Files
 
