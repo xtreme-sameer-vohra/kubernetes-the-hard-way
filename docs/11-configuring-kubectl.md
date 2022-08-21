@@ -69,4 +69,5 @@ worker-1   Ready    <none>   118s   v1.24.3
 worker-2   Ready    <none>   118s   v1.24.3
 ```
 
+Prev: [TLS Bootstrapping Kubernetes Workers](10-tls-bootstrapping-kubernetes-workers.md)</br>
 Next: [Deploy Pod Networking](12-configure-pod-networking.md)

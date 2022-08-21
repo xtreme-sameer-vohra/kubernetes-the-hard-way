@@ -32,4 +32,5 @@ weave-net-rr5dk   2/2     Running   0          89s
 
 Reference: https://kubernetes.io/docs/tasks/administer-cluster/network-policy-provider/weave-network-policy/#install-the-weave-net-addon
 
+Prev: [Configuring Kubectl](11-configuring-kubectl.md)</br>
 Next: [Kube API Server to Kubelet Connectivity](13-kube-apiserver-to-kubelet.md)

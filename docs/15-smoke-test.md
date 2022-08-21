@@ -147,4 +147,5 @@ kubectl exec -ti $POD_NAME -- nginx -v
 nginx version: nginx/1.23.1
 ```
 
+Prev: [DNS Addon](14-dns-addon.md)</br>
 Next: [End to End Tests](16-e2e-tests.md)

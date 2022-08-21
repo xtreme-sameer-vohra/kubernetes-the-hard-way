@@ -36,3 +36,4 @@ export KUBECONFIG="$HOME/.kube/config"
 
 This could take about 1.5 to 2 hours. The number of tests run and passed will be displayed at the end.
 
+Prev: [Smoke Test](15-smoke-test.md)
