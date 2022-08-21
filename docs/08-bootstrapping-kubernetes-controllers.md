@@ -2,6 +2,8 @@
 
 In this lab you will bootstrap the Kubernetes control plane across 2 compute instances and configure it for high availability. You will also create an external load balancer that exposes the Kubernetes API Servers to remote clients. The following components will be installed on each node: Kubernetes API Server, Scheduler, and Controller Manager.
 
+Note that in a production-ready cluster it is recommended to have an odd number of master nodes as for multi-node services like etcd, leader election and quorum work better. See lecture on this ([KodeKloud](https://kodekloud.com/topic/etcd-in-ha/), [Udemy](https://www.udemy.com/course/certified-kubernetes-administrator-with-practice-tests/learn/lecture/14296192#overview)). We're only using two here to save on RAM on your workstation.
+
 ## Prerequisites
 
 The commands in this lab up as far as the load balancer configuration must be run on each controller instance: `master-1`, and `master-2`. Login to each controller instance using SSH Terminal.
