@@ -146,7 +146,7 @@ Create the installation directories:
 sudo mkdir -p \
   /var/lib/kubelet \
   /var/lib/kube-proxy \
-  /var/lib/kubernetes \
+  /var/lib/kubernetes/pki \
   /var/run/kubernetes
 ```
 
@@ -161,11 +161,17 @@ Install the worker binaries:
 
 ### Configure the Kubelet
 On worker-1:
+
+Copy keys and config to correct directories and secure
 ```bash
 {
   sudo mv ${HOSTNAME}.key ${HOSTNAME}.crt /var/lib/kubelet/
   sudo mv ${HOSTNAME}.kubeconfig /var/lib/kubelet/kubeconfig
-  sudo mv ca.crt /var/lib/kubernetes/
+  sudo mv ca.crt /var/lib/kubernetes/pki/
+  sudo chwon root:root /var/lib/kubernetes/pki/ca.crt
+  sudo chmod 600 /var/lib/kubernetes/pki/ca.crt
+  sudo chown root:root /var/lib/kubelet/*
+  sudo chmod 600 /var/lib/kubelet/*
 }
 ```
 
@@ -194,7 +200,7 @@ authentication:
   webhook:
     enabled: true
   x509:
-    clientCAFile: /var/lib/kubernetes/ca.crt
+    clientCAFile: /var/lib/kubernetes/pki/ca.crt
 authorization:
   mode: Webhook
 clusterDomain: cluster.local

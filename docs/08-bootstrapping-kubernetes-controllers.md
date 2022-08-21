@@ -12,14 +12,6 @@ You can perform this step with [tmux](01-prerequisites.md#running-commands-in-pa
 
 ## Provision the Kubernetes Control Plane
 
-Create the Kubernetes configuration directory:
-
- * TODO this is location of admin kubeconfig?
-
-```bash
-sudo mkdir -p /etc/kubernetes/config
-```
-
 ### Download and Install the Kubernetes Controller Binaries
 
 Download the official Kubernetes release binaries:
@@ -57,6 +49,7 @@ Place the key pairs into the kubernetes data directory and secure
     service-account.key service-account.crt \
     apiserver-kubelet-client.crt apiserver-kubelet-client.key \
     etcd-server.key etcd-server.crt /var/lib/kubernetes/pki
+  sudo chown root:root /var/lib/kubernetes/pki/*
   sudo chmod 600 /var/lib/kubernetes/pki/*
 }
 ```
