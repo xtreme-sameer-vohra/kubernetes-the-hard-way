@@ -214,6 +214,10 @@ sudo chmod 600 /var/lib/kubernetes/*.kubeconfig
 kubectl get componentstatuses --kubeconfig admin.kubeconfig
 ```
 
+It will give you a deprecation warning here, but that's ok.
+
+> Output
+
 ```
 NAME                 STATUS    MESSAGE              ERROR
 controller-manager   Healthy   ok
