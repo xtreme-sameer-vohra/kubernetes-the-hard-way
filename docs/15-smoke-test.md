@@ -48,7 +48,9 @@ sudo ETCDCTL_API=3 etcdctl get \
 The etcd key should be prefixed with `k8s:enc:aescbc:v1:key1`, which indicates the `aescbc` provider was used to encrypt the data with the `key1` encryption key.
 
 Cleanup:
-`kubectl delete secret kubernetes-the-hard-way`
+```bash
+kubectl delete secret kubernetes-the-hard-way
+```
 
 ## Deployments
 
@@ -56,13 +58,13 @@ In this section you will verify the ability to create and manage [Deployments](h
 
 Create a deployment for the [nginx](https://nginx.org/en/) web server:
 
-```
-kubectl create deployment nginx --image=nginx
+```bash
+kubectl create deployment nginx --image=nginx:1.23.1
 ```
 
 List the pod created by the `nginx` deployment:
 
-```
+```bash
 kubectl get pods -l app=nginx
 ```
 
@@ -84,7 +86,7 @@ kubectl expose deploy nginx --type=NodePort --port 80
 ```
 
 
-```
+```bash
 PORT_NUMBER=$(kubectl get svc -l app=nginx -o jsonpath="{.items[0].spec.ports[0].nodePort}")
 ```
 
@@ -142,7 +144,7 @@ kubectl exec -ti $POD_NAME -- nginx -v
 > output
 
 ```
-nginx version: nginx/1.15.9
+nginx version: nginx/1.23.1
 ```
 
 Next: [End to End Tests](16-e2e-tests.md)
