@@ -63,6 +63,7 @@ To change this, open all the `.md` files in the [docs](../docs/) directory in yo
 `SERVICE_CIDR=10.96.0.0/16`<br>
 with the new CDIR range.  This should not overlap any of the other network settings.
 
+Additionally edit line 164 of [coredns.yaml](../deployments/coredns.yaml) to set the new DNS service address (should still end with `.10`)
 
 ## Running Commands in Parallel with tmux
 

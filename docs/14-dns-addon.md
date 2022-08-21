@@ -6,6 +6,8 @@ In this lab you will deploy the [DNS add-on](https://kubernetes.io/docs/concepts
 
 Deploy the `coredns` cluster add-on:
 
+Note that if you have [changed the service CIDR range](./01-prerequisites.md#service-network) and thus this file, you will need to save your copy onto `master-1` (paste to vi, then save) and apply that.
+
 ```
 kubectl apply -f https://raw.githubusercontent.com/mmumshad/kubernetes-the-hard-way/master/deployments/coredns.yaml
 ```
