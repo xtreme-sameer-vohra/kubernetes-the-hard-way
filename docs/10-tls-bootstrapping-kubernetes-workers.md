@@ -399,7 +399,9 @@ Things to note here:
 In one of the previous steps we created the kube-proxy.kubeconfig file. Check [here](https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/05-kubernetes-configuration-files.md) if you missed it.
 
 ```bash
-sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy
+sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
+sudo chown root:root /var/lib/kube-proxy/kubeconfig
+sudo chmod 600 /var/lib/kube-proxy/kubeconfig
 ```
 
 Create the `kube-proxy-config.yaml` configuration file:
@@ -409,7 +411,7 @@ cat <<EOF | sudo tee /var/lib/kube-proxy/kube-proxy-config.yaml
 kind: KubeProxyConfiguration
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 clientConnection:
-  kubeconfig: /var/lib/kube-proxy/kube-proxy.kubeconfig
+  kubeconfig: /var/lib/kube-proxy/kubeconfig
 mode: iptables
 clusterCIDR: ${POD_CIDR}
 EOF
