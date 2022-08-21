@@ -494,4 +494,5 @@ worker-2   NotReady   <none>   93s   v1.24.3
 ```
 Note: It is OK for the worker node to be in a NotReady state. That is because we haven't configured Networking yet.
 
+Prev: [Bootstrapping the Kubernetes Worker Nodes](09-bootstrapping-kubernetes-workers.md)</br>
 Next: [Configuring Kubectl](11-configuring-kubectl.md)
