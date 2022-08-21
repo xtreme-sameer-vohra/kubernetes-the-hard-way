@@ -8,16 +8,20 @@ In this lab you will generate a kubeconfig file for the `kubectl` command line u
 
 Each kubeconfig requires a Kubernetes API Server to connect to. To support high availability the IP address assigned to the external load balancer fronting the Kubernetes API Servers will be used.
 
+Get the kube-api server load-balancer IP.
+```
+LOADBALANCER=$(dig +short loadbalancer)
+```
+
 Generate a kubeconfig file suitable for authenticating as the `admin` user:
 
-```
+```bash
 {
-  KUBERNETES_LB_ADDRESS=192.168.5.30
 
   kubectl config set-cluster kubernetes-the-hard-way \
     --certificate-authority=ca.crt \
     --embed-certs=true \
-    --server=https://${KUBERNETES_LB_ADDRESS}:6443
+    --server=https://${LOADBALANCER}:6443
 
   kubectl config set-credentials admin \
     --client-certificate=admin.crt \
@@ -61,10 +65,8 @@ kubectl get nodes
 
 ```
 NAME       STATUS   ROLES    AGE    VERSION
-worker-1   NotReady    <none>   118s   v1.13.0
-worker-2   NotReady    <none>   118s   v1.13.0
+worker-1   Ready    <none>   118s   v1.24.3
+worker-2   Ready    <none>   118s   v1.24.3
 ```
-
-Note: It is OK for the worker node to be in a `NotReady` state. Worker nodes will come into `Ready` state once networking is configured.
 
 Next: [Deploy Pod Networking](12-configure-pod-networking.md)
