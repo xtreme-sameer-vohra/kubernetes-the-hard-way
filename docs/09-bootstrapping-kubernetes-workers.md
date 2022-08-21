@@ -8,7 +8,7 @@ We will now install the kubernetes components
 
 ## Prerequisites
 
-The Certificates and Configuration are created on `master-1` node and then copied over to workers using `scp`. 
+The Certificates and Configuration are created on `master-1` node and then copied over to workers using `scp`.
 Once this is done, the commands are to be run on first worker instance: `worker-1`. Login to first worker instance using SSH Terminal.
 
 ### Provisioning Kubelet Client Certificates
@@ -19,7 +19,11 @@ Generate a certificate and private key for one worker node:
 
 On master-1:
 
+```bash
+WORKER_1=$(dig +short worker-1)
 ```
+
+```bash
 cat > openssl-worker-1.cnf <<EOF
 [req]
 req_extensions = v3_req
@@ -31,7 +35,7 @@ keyUsage = nonRepudiation, digitalSignature, keyEncipherment
 subjectAltName = @alt_names
 [alt_names]
 DNS.1 = worker-1
-IP.1 = 192.168.5.21
+IP.1 = ${WORKER_1}
 EOF
 
 openssl genrsa -out worker-1.key 2048
@@ -52,18 +56,18 @@ When generating kubeconfig files for Kubelets the client certificate matching th
 
 Get the kub-api server load-balancer IP.
 ```
-LOADBALANCER_ADDRESS=192.168.5.30
+LOADBALANCER=$(dig +short loadbalancer)
 ```
 
 Generate a kubeconfig file for the first worker node.
 
 On master-1:
-```
+```bash
 {
   kubectl config set-cluster kubernetes-the-hard-way \
     --certificate-authority=ca.crt \
     --embed-certs=true \
-    --server=https://${LOADBALANCER_ADDRESS}:6443 \
+    --server=https://${LOADBALANCER}:6443 \
     --kubeconfig=worker-1.kubeconfig
 
   kubectl config set-credentials system:node:worker-1 \
@@ -90,19 +94,48 @@ worker-1.kubeconfig
 ### Copy certificates, private keys and kubeconfig files to the worker node:
 On master-1:
 ```
-master-1$ scp ca.crt worker-1.crt worker-1.key worker-1.kubeconfig worker-1:~/
+scp ca.crt worker-1.crt worker-1.key worker-1.kubeconfig worker-1:~/
 ```
 
-### Download and Install Worker Binaries
+### Download and Install Container Networking
 
 Going forward all activities are to be done on the `worker-1` node.
 
 On worker-1:
+
+Set up `containerd` and the CNI plugins. [containerd replaces docker](https://kodekloud.com/blog/kubernetes-removed-docker-what-happens-now/) as the container runtime for Kubernetes from v1.24 onwards.
+
+Containerd, runc, CNI plugins and crictl
+
+We extract this directly to `/` as the containerd guys have helpfully arranged the entire directory structure within the tarball.
+
+```bash
+{
+  wget -q --show-progress --https-only --timestamping \
+    https://github.com/containerd/containerd/releases/download/v1.6.6/cri-containerd-cni-1.6.6-linux-amd64.tar.gz
+
+  sudo tar -xzvf cri-containerd-cni-1.6.6-linux-amd64.tar.gz -C /
+}
 ```
-worker-1$ wget -q --show-progress --https-only --timestamping \
-  https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl \
-  https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kube-proxy \
-  https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubelet
+
+Next, enable and start the containerd service
+
+```bash
+{
+  sudo systemctl enable containerd
+  sudo systemctl start containerd
+}
+```
+
+
+### Download and Install Worker Binaries
+
+
+```bash
+wget -q --show-progress --https-only --timestamping \
+  https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubectl \
+  https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kube-proxy \
+  https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubelet \
 ```
 
 Reference: https://kubernetes.io/docs/setup/release/#node-binaries
@@ -110,9 +143,7 @@ Reference: https://kubernetes.io/docs/setup/release/#node-binaries
 Create the installation directories:
 
 ```
-worker-1$ sudo mkdir -p \
-  /etc/cni/net.d \
-  /opt/cni/bin \
+sudo mkdir -p \
   /var/lib/kubelet \
   /var/lib/kube-proxy \
   /var/lib/kubernetes \
@@ -130,7 +161,7 @@ Install the worker binaries:
 
 ### Configure the Kubelet
 On worker-1:
-```
+```bash
 {
   sudo mv ${HOSTNAME}.key ${HOSTNAME}.crt /var/lib/kubelet/
   sudo mv ${HOSTNAME}.kubeconfig /var/lib/kubelet/kubeconfig
@@ -138,10 +169,23 @@ On worker-1:
 }
 ```
 
+CIDR ranges used *within* the cluster
+
+```bash
+POD_CIDR=10.244.0.0/16
+SERVICE_CIDR=10.96.0.0/16
+```
+
+Compute cluster DNS addess, which is always .10 in the service CIDR range
+
+```bash
+CLUSTER_DNS=$(echo $SERVICE_CIDR | awk 'BEGIN {FS="."} ; { printf("%s.%s.%s.10", $1, $2, $3) }')
+```
+
 Create the `kubelet-config.yaml` configuration file:
 
-```
-worker-1$ cat <<EOF | sudo tee /var/lib/kubelet/kubelet-config.yaml
+```bash
+cat <<EOF | sudo tee /var/lib/kubelet/kubelet-config.yaml
 kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
 authentication:
@@ -150,14 +194,17 @@ authentication:
   webhook:
     enabled: true
   x509:
-    clientCAFile: "/var/lib/kubernetes/ca.crt"
+    clientCAFile: /var/lib/kubernetes/ca.crt
 authorization:
   mode: Webhook
-clusterDomain: "cluster.local"
+clusterDomain: cluster.local
 clusterDNS:
-  - "10.96.0.10"
-resolvConf: "/run/systemd/resolve/resolv.conf"
+  - ${CLUSTER_DNS}
+resolvConf: /run/systemd/resolve/resolv.conf
 runtimeRequestTimeout: "15m"
+tlsCertFile: /var/lib/kubelet/${HOSTNAME}.crt
+tlsPrivateKeyFile: /var/lib/kubelet/${HOSTNAME}.key
+registerNode: true
 EOF
 ```
 
@@ -165,23 +212,19 @@ EOF
 
 Create the `kubelet.service` systemd unit file:
 
-```
-worker-1$ cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
+```bash
+cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/kubernetes/kubernetes
-After=docker.service
-Requires=docker.service
+After=containerd.service
+Requires=containerd.service
 
 [Service]
 ExecStart=/usr/local/bin/kubelet \\
   --config=/var/lib/kubelet/kubelet-config.yaml \\
-  --image-pull-progress-deadline=2m \\
+  --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
   --kubeconfig=/var/lib/kubelet/kubeconfig \\
-  --tls-cert-file=/var/lib/kubelet/${HOSTNAME}.crt \\
-  --tls-private-key-file=/var/lib/kubelet/${HOSTNAME}.key \\
-  --network-plugin=cni \\
-  --register-node=true \\
   --v=2
 Restart=on-failure
 RestartSec=5
@@ -193,27 +236,28 @@ EOF
 
 ### Configure the Kubernetes Proxy
 On worker-1:
-```
-worker-1$ sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
+
+```bash
+sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
 ```
 
 Create the `kube-proxy-config.yaml` configuration file:
 
-```
-worker-1$ cat <<EOF | sudo tee /var/lib/kube-proxy/kube-proxy-config.yaml
+```bash
+cat <<EOF | sudo tee /var/lib/kube-proxy/kube-proxy-config.yaml
 kind: KubeProxyConfiguration
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 clientConnection:
   kubeconfig: "/var/lib/kube-proxy/kubeconfig"
 mode: "iptables"
-clusterCIDR: "192.168.5.0/24"
+clusterCIDR: ${POD_CIDR}
 EOF
 ```
 
 Create the `kube-proxy.service` systemd unit file:
 
-```
-worker-1$ cat <<EOF | sudo tee /etc/systemd/system/kube-proxy.service
+```bash
+cat <<EOF | sudo tee /etc/systemd/system/kube-proxy.service
 [Unit]
 Description=Kubernetes Kube Proxy
 Documentation=https://github.com/kubernetes/kubernetes
@@ -246,20 +290,16 @@ On master-1:
 
 List the registered Kubernetes nodes from the master node:
 
-```
-master-1$ kubectl get nodes --kubeconfig admin.kubeconfig
+```bash
+kubectl get nodes --kubeconfig admin.kubeconfig
 ```
 
 > output
 
 ```
-NAME       STATUS     ROLES    AGE   VERSION
-worker-1   NotReady   <none>   93s   v1.13.0
+NAME       STATUS  ROLES    AGE   VERSION
+worker-1   Ready   <none>   93s   v1.24.3
 ```
 
-> Note: It is OK for the worker node to be in a NotReady state.
-  That is because we haven't configured Networking yet.
-
-Optional: At this point you may run the certificate verification script to make sure all certificates are configured correctly. Follow the instructions [here](verify-certificates.md)
-
+Prev: [Bootstrapping the Kubernetes Control Plane](08-bootstrapping-kubernetes-controllers.md)<br>
 Next: [TLS Bootstrapping Kubernetes Workers](10-tls-bootstrapping-kubernetes-workers.md)

@@ -39,58 +39,30 @@ So let's get started!
   --cluster-signing-key-file=/var/lib/kubernetes/ca.key
 ```
 
-> Note: We have already configured these in our setup in this course
+> Note: We have already configured these in lab 8 in this course
 
 Copy the ca certificate to the worker node:
 
-
-## Step 1 Configure the Binaries on the Worker node
-
-### Download and Install Worker Binaries
-
+```bash
+scp ca.crt worker-2:~/
 ```
-worker-2$ wget -q --show-progress --https-only --timestamping \
-  https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubectl \
-  https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kube-proxy \
-  https://storage.googleapis.com/kubernetes-release/release/v1.13.0/bin/linux/amd64/kubelet
-```
-
-Reference: https://kubernetes.io/docs/setup/release/#node-binaries
-
-Create the installation directories:
-
-```
-worker-2$ sudo mkdir -p \
-  /etc/cni/net.d \
-  /opt/cni/bin \
-  /var/lib/kubelet \
-  /var/lib/kube-proxy \
-  /var/lib/kubernetes \
-  /var/run/kubernetes
-```
-
-Install the worker binaries:
-
-```
-{
-  chmod +x kubectl kube-proxy kubelet
-  sudo mv kubectl kube-proxy kubelet /usr/local/bin/
-}
-```
-### Move the ca certificate
-
-`worker-2$ sudo mv ca.crt /var/lib/kubernetes/`
 
 # Step 1 Create the Boostrap Token to be used by Nodes(Kubelets) to invoke Certificate API
+
+Run the following steps on `master-1`
 
 For the workers(kubelet) to access the Certificates API, they need to authenticate to the kubernetes api-server first. For this we create a [Bootstrap Token](https://kubernetes.io/docs/reference/access-authn-authz/bootstrap-tokens/) to be used by the kubelet
 
 Bootstrap Tokens take the form of a 6 character token id followed by 16 character token secret separated by a dot. Eg: abcdef.0123456789abcdef. More formally, they must match the regular expression [a-z0-9]{6}\.[a-z0-9]{16}
 
+Set an expiration date for the bootstrap token of 7 days from now (you can adjust this)
 
-
+```bash
+EXPIRATION=$(date -u --date "+7 days" +"%Y-%m-%dT%H:%M:%SZ")
 ```
-master-1$ cat > bootstrap-token-07401b.yaml <<EOF
+
+```bash
+cat > bootstrap-token-07401b.yaml <<EOF
 apiVersion: v1
 kind: Secret
 metadata:
@@ -109,7 +81,7 @@ stringData:
   token-secret: f395accd246ae52d
 
   # Expiration. Optional.
-  expiration: 2021-03-10T03:22:11Z
+  expiration: ${EXPIRATION}
 
   # Allowed usages.
   usage-bootstrap-authentication: "true"
@@ -120,7 +92,7 @@ stringData:
 EOF
 
 
-master-1$ kubectl create -f bootstrap-token-07401b.yaml
+kubectl create -f bootstrap-token-07401b.yaml --kubeconfig admin.kubeconfig
 
 ```
 
@@ -136,12 +108,16 @@ Reference: https://kubernetes.io/docs/reference/access-authn-authz/bootstrap-tok
 
 Next we associate the group we created before to the system:node-bootstrapper ClusterRole. This ClusterRole gives the group enough permissions to bootstrap the kubelet
 
+```bash
+kubectl create clusterrolebinding create-csrs-for-bootstrapping \
+  --clusterrole=system:node-bootstrapper \
+  --group=system:bootstrappers \
+  --kubeconfig admin.kubeconfig
 ```
-master-1$ kubectl create clusterrolebinding create-csrs-for-bootstrapping --clusterrole=system:node-bootstrapper --group=system:bootstrappers
-
 --------------- OR ---------------
 
-master-1$ cat > csrs-for-bootstrapping.yaml <<EOF
+```bash
+cat > csrs-for-bootstrapping.yaml <<EOF
 # enable bootstrapping nodes to create CSR
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -158,18 +134,23 @@ roleRef:
 EOF
 
 
-master-1$ kubectl create -f csrs-for-bootstrapping.yaml
+kubectl create -f csrs-for-bootstrapping.yaml --kubeconfig admin.kubeconfig
 
 ```
 Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/#authorize-kubelet-to-create-csr
 
 ## Step 3 Authorize workers(kubelets) to approve CSR
+```bash
+kubectl create clusterrolebinding auto-approve-csrs-for-group \
+  --clusterrole=system:certificates.k8s.io:certificatesigningrequests:nodeclient \
+  --group=system:bootstrappers \
+  --kubeconfig admin.kubeconfig
 ```
-master-1$ kubectl create clusterrolebinding auto-approve-csrs-for-group --clusterrole=system:certificates.k8s.io:certificatesigningrequests:nodeclient --group=system:bootstrappers
 
  --------------- OR ---------------
 
-master-1$ cat > auto-approve-csrs-for-group.yaml <<EOF
+```bash
+cat > auto-approve-csrs-for-group.yaml <<EOF
 # Approve all CSRs for the group "system:bootstrappers"
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -186,21 +167,26 @@ roleRef:
 EOF
 
 
-master-1$ kubectl create -f auto-approve-csrs-for-group.yaml
+kubectl create -f auto-approve-csrs-for-group.yaml --kubeconfig admin.kubeconfig
 ```
 
 Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/#approval
 
-## Step 3 Authorize workers(kubelets) to Auto Renew Certificates on expiration
+## Step 4 Authorize workers(kubelets) to Auto Renew Certificates on expiration
 
 We now create the Cluster Role Binding required for the nodes to automatically renew the certificates on expiry. Note that we are NOT using the **system:bootstrappers** group here any more. Since by the renewal period, we believe the node would be bootstrapped and part of the cluster already. All nodes are part of the **system:nodes** group.
 
+```bash
+kubectl create clusterrolebinding auto-approve-renewals-for-nodes \
+  --clusterrole=system:certificates.k8s.io:certificatesigningrequests:selfnodeclient \
+  --group=system:nodes \
+  --kubeconfig admin.kubeconfig
 ```
-master-1$ kubectl create clusterrolebinding auto-approve-renewals-for-nodes --clusterrole=system:certificates.k8s.io:certificatesigningrequests:selfnodeclient --group=system:nodes
 
 --------------- OR ---------------
 
-master-1$ cat > auto-approve-renewals-for-nodes.yaml <<EOF
+```bash
+cat > auto-approve-renewals-for-nodes.yaml <<EOF
 # Approve renewal CSRs for the group "system:nodes"
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -217,36 +203,116 @@ roleRef:
 EOF
 
 
-master-1$ kubectl create -f auto-approve-renewals-for-nodes.yaml
+kubectl create -f auto-approve-renewals-for-nodes.yaml --kubeconfig admin.kubeconfig
 ```
 
 Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/#approval
 
-## Step 4 Configure Kubelet to TLS Bootstrap
+## Step 5 Configure the Binaries on the Worker node
+
+### Download and Install Container Networking
+
+Going forward all activities are to be done on the `worker-2` node.
+
+Set up `containerd` and the CNI plugins. [containerd replaces docker](https://kodekloud.com/blog/kubernetes-removed-docker-what-happens-now/) as the container runtime for Kubernetes from v1.24 onwards.
+
+Containerd, runc, CNI plugins and crictl
+
+We extract this directly to `/` as the containerd guys have helpfully arranged the entire directory structure within the tarball.
+
+```bash
+{
+  wget -q --show-progress --https-only --timestamping \
+    https://github.com/containerd/containerd/releases/download/v1.6.6/cri-containerd-cni-1.6.6-linux-amd64.tar.gz
+
+  sudo tar -xzvf cri-containerd-cni-1.6.6-linux-amd64.tar.gz -C /
+}
+```
+
+Next, enable and start the containerd service
+
+```bash
+{
+  sudo systemctl enable containerd
+  sudo systemctl start containerd
+}
+```
+
+
+### Download and Install Worker Binaries
+
+```
+worker-2$ wget -q --show-progress --https-only --timestamping \
+  https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubectl \
+  https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kube-proxy \
+  https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubelet
+```
+
+Reference: https://kubernetes.io/docs/setup/release/#node-binaries
+
+Create the installation directories:
+
+```bash
+sudo mkdir -p \
+  /var/lib/kubelet/pki \
+  /var/lib/kube-proxy \
+  /var/lib/kubernetes/pki \
+  /var/run/kubernetes
+```
+
+Install the worker binaries:
+
+```
+{
+  chmod +x kubectl kube-proxy kubelet
+  sudo mv kubectl kube-proxy kubelet /usr/local/bin/
+}
+```
+Move the ca certificate and secure it.
+
+```bash
+sudo mv ca.crt /var/lib/kubernetes/pki
+sudo chown root:root /var/lib/kubernetes/pki/ca.crt
+sudo chmod 600 /var/lib/kubernetes/pki/ca.crt
+```
+
+
+## Step 6 Configure Kubelet to TLS Bootstrap
 
 It is now time to configure the second worker to TLS bootstrap using the token we generated
 
 For worker-1 we started by creating a kubeconfig file with the TLS certificates that we manually generated.
 Here, we don't have the certificates yet. So we cannot create a kubeconfig file. Instead we create a bootstrap-kubeconfig file with information about the token we created.
 
-This is to be done on the `worker-2` node.
+This is to be done on the `worker-2` node. Note that now we have set up the load balancer to provide high availibilty across the API servers, we point kubelet to the load balancer.
 
+Set up some shell variables for nodes and services we will require in the following configurations:
+
+```bash
+LOADBALANCER=$(dig +short loadbalancer)
+POD_CIDR=10.244.0.0/16
+SERVICE_CIDR=10.96.0.0/16
+CLUSTER_DNS=$(echo $SERVICE_CIDR | awk 'BEGIN {FS="."} ; { printf("%s.%s.%s.10", $1, $2, $3) }')
 ```
-worker-2$ sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig set-cluster bootstrap --server='https://192.168.5.30:6443' --certificate-authority=/var/lib/kubernetes/ca.crt
+
+Set up the bootstrap kubeconfig.
+
+```bash
+sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig set-cluster bootstrap --server='https://${LOADBALANCER}:6443' --certificate-authority=/var/lib/kubernetes/pki/ca.crt
 sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig set-credentials kubelet-bootstrap --token=07401b.f395accd246ae52d
 sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig set-context bootstrap --user=kubelet-bootstrap --cluster=bootstrap
 sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig use-context bootstrap
 ```
 
-Or
+--------------- OR ---------------
 
-```
-worker-2$ cat <<EOF | sudo tee /var/lib/kubelet/bootstrap-kubeconfig
+```bash
+cat <<EOF | sudo tee /var/lib/kubelet/bootstrap-kubeconfig
 apiVersion: v1
 clusters:
 - cluster:
-    certificate-authority: /var/lib/kubernetes/ca.crt
-    server: https://192.168.5.30:6443
+    certificate-authority: /var/lib/kubernetes/pki/ca.crt
+    server: https://${LOADBALANCER}:6443
   name: bootstrap
 contexts:
 - context:
@@ -265,12 +331,12 @@ EOF
 
 Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/#kubelet-configuration
 
-## Step 5 Create Kubelet Config File
+## Step 7 Create Kubelet Config File
 
 Create the `kubelet-config.yaml` configuration file:
 
-```
-worker-2$ cat <<EOF | sudo tee /var/lib/kubelet/kubelet-config.yaml
+```bash
+cat <<EOF | sudo tee /var/lib/kubelet/kubelet-config.yaml
 kind: KubeletConfiguration
 apiVersion: kubelet.config.k8s.io/v1beta1
 authentication:
@@ -279,41 +345,41 @@ authentication:
   webhook:
     enabled: true
   x509:
-    clientCAFile: "/var/lib/kubernetes/ca.crt"
+    clientCAFile: /var/lib/kubernetes/pki/ca.crt
 authorization:
   mode: Webhook
 clusterDomain: "cluster.local"
 clusterDNS:
-  - "10.96.0.10"
-resolvConf: "/run/systemd/resolve/resolv.conf"
+  - ${CLUSTER_DNS}
+registerNode: true
+resolvConf: /run/systemd/resolve/resolv.conf
+rotateCertificates: true
 runtimeRequestTimeout: "15m"
+serverTLSBootstrap: true
 EOF
 ```
 
 > Note: We are not specifying the certificate details - tlsCertFile and tlsPrivateKeyFile - in this file
 
-## Step 6 Configure Kubelet Service
+## Step 8 Configure Kubelet Service
 
 Create the `kubelet.service` systemd unit file:
 
-```
-worker-2$ cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
+```bash
+cat <<EOF | sudo tee /etc/systemd/system/kubelet.service
 [Unit]
 Description=Kubernetes Kubelet
 Documentation=https://github.com/kubernetes/kubernetes
-After=docker.service
-Requires=docker.service
+After=containerd.service
+Requires=containerd.service
 
 [Service]
 ExecStart=/usr/local/bin/kubelet \\
   --bootstrap-kubeconfig="/var/lib/kubelet/bootstrap-kubeconfig" \\
   --config=/var/lib/kubelet/kubelet-config.yaml \\
-  --image-pull-progress-deadline=2m \\
   --kubeconfig=/var/lib/kubelet/kubeconfig \\
   --cert-dir=/var/lib/kubelet/pki/ \\
-  --rotate-certificates=true \\
-  --network-plugin=cni \\
-  --register-node=true \\
+  --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
   --v=2
 Restart=on-failure
 RestartSec=5
@@ -326,33 +392,33 @@ EOF
 Things to note here:
 - **bootstrap-kubeconfig**: Location of the bootstrap-kubeconfig file.
 - **cert-dir**: The directory where the generated certificates are stored.
-- **rotate-certificates**: Rotates client certificates when they expire.
+- **kubeconfig**: We specify a location for this *but we have not yet created it*. Kubelet will create one itself upon successful bootstrap.
 
-## Step 7 Configure the Kubernetes Proxy
+## Step 9 Configure the Kubernetes Proxy
 
 In one of the previous steps we created the kube-proxy.kubeconfig file. Check [here](https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/05-kubernetes-configuration-files.md) if you missed it.
 
-```
-worker-2$ sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
+```bash
+sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
 ```
 
 Create the `kube-proxy-config.yaml` configuration file:
 
-```
-worker-2$ cat <<EOF | sudo tee /var/lib/kube-proxy/kube-proxy-config.yaml
+```bash
+cat <<EOF | sudo tee /var/lib/kube-proxy/kube-proxy-config.yaml
 kind: KubeProxyConfiguration
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 clientConnection:
-  kubeconfig: "/var/lib/kube-proxy/kubeconfig"
-mode: "iptables"
-clusterCIDR: "192.168.5.0/24"
+  kubeconfig: /var/lib/kube-proxy/kube-proxy.kubeconfig
+mode: iptables
+clusterCIDR: ${POD_CIDR}
 EOF
 ```
 
 Create the `kube-proxy.service` systemd unit file:
 
-```
-worker-2$ cat <<EOF | sudo tee /etc/systemd/system/kube-proxy.service
+```bash
+cat <<EOF | sudo tee /etc/systemd/system/kube-proxy.service
 [Unit]
 Description=Kubernetes Kube Proxy
 Documentation=https://github.com/kubernetes/kubernetes
@@ -368,11 +434,11 @@ WantedBy=multi-user.target
 EOF
 ```
 
-## Step 8 Start the Worker Services
+## Step 10 Start the Worker Services
 
 On worker-2:
 
-```
+```bash
 {
   sudo systemctl daemon-reload
   sudo systemctl enable kubelet kube-proxy
@@ -382,9 +448,15 @@ On worker-2:
 > Remember to run the above commands on worker node: `worker-2`
 
 
-## Step 9 Approve Server CSR
+## Step 11 Approve Server CSR
 
-`master-1$ kubectl get csr`
+Now, go back to `master-1`
+
+```bash
+kubectl get csr
+```
+
+> Output
 
 ```
 NAME                                                   AGE   REQUESTOR                 CONDITION
@@ -394,7 +466,10 @@ csr-95bv6                                              20s   system:node:worker-
 
 Approve
 
-`master-1$ kubectl certificate approve csr-95bv6`
+```bash
+master-1$ kubectl certificate approve csr-95bv6
+```
+
 
 Note: In the event your cluster persists for longer than 365 days, you will need to manually approve the replacement CSR.
 
@@ -404,16 +479,16 @@ Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kub
 
 List the registered Kubernetes nodes from the master node:
 
-```
-master-1$ kubectl get nodes --kubeconfig admin.kubeconfig
+```bash
+kubectl get nodes --kubeconfig admin.kubeconfig
 ```
 
 > output
 
 ```
 NAME       STATUS   ROLES    AGE   VERSION
-worker-1   NotReady   <none>   93s   v1.13.0
-worker-2   NotReady   <none>   93s   v1.13.0
+worker-1   NotReady   <none>   93s   v1.24.3
+worker-2   NotReady   <none>   93s   v1.24.3
 ```
 Note: It is OK for the worker node to be in a NotReady state. That is because we haven't configured Networking yet.
 
