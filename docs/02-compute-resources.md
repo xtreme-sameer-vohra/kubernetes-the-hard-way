@@ -77,7 +77,9 @@ Vagrant generates a private key for each of these VMs. It is placed under the .v
 
 ## Troubleshooting Tips
 
-1. If any of the VMs failed to provision, or is not configured correct, delete the VM using the command:
+### Failed Provisioning
+
+If any of the VMs failed to provision, or is not configured correct, delete the VM using the command:
 
 ```bash
 vagrant destroy <vm>
@@ -105,6 +107,15 @@ vagrant destroy worker-2
 rmdir "<path-to-vm-folder>\kubernetes-ha-worker-2
 vagrant up
 ```
+
+### Provisioner gets stuck
+
+This will most likely happen at "Waiting for machine to reboot"
+
+1. Hit `CTRL+C`
+1. Kill any running `ruby` process, or Vagrant will complain.
+1. Destroy the VM that got stuck: `vagrant destroy <vm>`
+1. Re-provision. It will pick up where it left off: `vagrant up`
 
 # Pausing the Environment
 
