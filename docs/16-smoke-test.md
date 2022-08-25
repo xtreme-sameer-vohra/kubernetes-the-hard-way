@@ -8,14 +8,14 @@ In this section you will verify the ability to [encrypt secret data at rest](htt
 
 Create a generic secret:
 
-```
+```bash
 kubectl create secret generic kubernetes-the-hard-way \
   --from-literal="mykey=mydata"
 ```
 
 Print a hexdump of the `kubernetes-the-hard-way` secret stored in etcd:
 
-```
+```bash
 sudo ETCDCTL_API=3 etcdctl get \
   --endpoints=https://127.0.0.1:2379 \
   --cacert=/etc/etcd/ca.crt \
@@ -81,7 +81,7 @@ In this section you will verify the ability to access applications remotely usin
 
 Create a service to expose deployment nginx on node ports.
 
-```
+```bash
 kubectl expose deploy nginx --type=NodePort --port 80
 ```
 
@@ -92,7 +92,7 @@ PORT_NUMBER=$(kubectl get svc -l app=nginx -o jsonpath="{.items[0].spec.ports[0]
 
 Test to view NGINX page
 
-```
+```bash
 curl http://worker-1:$PORT_NUMBER
 curl http://worker-2:$PORT_NUMBER
 ```
@@ -114,13 +114,13 @@ In this section you will verify the ability to [retrieve container logs](https:/
 
 Retrieve the full name of the `nginx` pod:
 
-```
+```bash
 POD_NAME=$(kubectl get pods -l app=nginx -o jsonpath="{.items[0].metadata.name}")
 ```
 
 Print the `nginx` pod logs:
 
-```
+```bash
 kubectl logs $POD_NAME
 ```
 
@@ -137,7 +137,7 @@ In this section you will verify the ability to [execute commands in a container]
 
 Print the nginx version by executing the `nginx -v` command in the `nginx` container:
 
-```
+```bash
 kubectl exec -ti $POD_NAME -- nginx -v
 ```
 
@@ -147,5 +147,5 @@ kubectl exec -ti $POD_NAME -- nginx -v
 nginx version: nginx/1.23.1
 ```
 
-Prev: [DNS Addon](14-dns-addon.md)</br>
-Next: [End to End Tests](16-e2e-tests.md)
+Prev: [DNS Addon](15-dns-addon.md)</br>
+Next: [End to End Tests](17-e2e-tests.md)

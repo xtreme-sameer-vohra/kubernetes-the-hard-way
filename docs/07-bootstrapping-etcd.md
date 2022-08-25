@@ -33,16 +33,17 @@ Extract and install the `etcd` server and the `etcdctl` command line utility:
 ### Configure the etcd Server
 
 Copy and secure certificates. Note that we place `ca.crt` in our main PKI directory and link it from etcd to not have multiple copies of the cert lying around.
+
 ```bash
 {
   sudo mkdir -p /etc/etcd /var/lib/etcd /var/lib/kubernetes/pki
   sudo cp etcd-server.key etcd-server.crt /etc/etcd/
-  sudo cp ca.crt /var/lib/kubernetes/pki
+  sudo cp ca.crt /var/lib/kubernetes/pki/
   sudo chown root:root /etc/etcd/*
   sudo chmod 600 /etc/etcd/*
   sudo chown root:root /var/lib/kubernetes/pki/*
   sudo chmod 600 /var/lib/kubernetes/pki/*
-  sudo ln -s /var/lib/kubernetes/pki /etc/etcd/ca.crt
+  sudo ln -s /var/lib/kubernetes/pki/ca.crt /etc/etcd/ca.crt
 }
 ```
 

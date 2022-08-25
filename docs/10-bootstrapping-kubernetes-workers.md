@@ -65,15 +65,13 @@ On master-1:
 ```bash
 {
   kubectl config set-cluster kubernetes-the-hard-way \
-    --certificate-authority=ca.crt \
-    --embed-certs=true \
+    --certificate-authority=/var/lib/kubernetes/pki/ca.crt \
     --server=https://${LOADBALANCER}:6443 \
     --kubeconfig=worker-1.kubeconfig
 
   kubectl config set-credentials system:node:worker-1 \
-    --client-certificate=worker-1.crt \
-    --client-key=worker-1.key \
-    --embed-certs=true \
+    --client-certificate=/var/lib/kubernetes/pki/worker-1.crt \
+    --client-key=/var/lib/kubernetes/pki/worker-1.key \
     --kubeconfig=worker-1.kubeconfig
 
   kubectl config set-context default \
@@ -95,36 +93,6 @@ worker-1.kubeconfig
 On master-1:
 ```
 scp ca.crt worker-1.crt worker-1.key worker-1.kubeconfig worker-1:~/
-```
-
-### Download and Install Container Networking
-
-Going forward all activities are to be done on the `worker-1` node.
-
-On worker-1:
-
-Set up `containerd` and the CNI plugins. [containerd replaces docker](https://kodekloud.com/blog/kubernetes-removed-docker-what-happens-now/) as the container runtime for Kubernetes from v1.24 onwards.
-
-Containerd, runc, CNI plugins and crictl
-
-We extract this directly to `/` as the containerd guys have helpfully arranged the entire directory structure within the tarball.
-
-```bash
-{
-  wget -q --show-progress --https-only --timestamping \
-    https://github.com/containerd/containerd/releases/download/v1.6.6/cri-containerd-cni-1.6.6-linux-amd64.tar.gz
-
-  sudo tar -xzvf cri-containerd-cni-1.6.6-linux-amd64.tar.gz -C /
-}
-```
-
-Next, enable and start the containerd service
-
-```bash
-{
-  sudo systemctl enable containerd
-  sudo systemctl start containerd
-}
 ```
 
 
@@ -163,13 +131,15 @@ Install the worker binaries:
 On worker-1:
 
 Copy keys and config to correct directories and secure
+
 ```bash
 {
-  sudo mv ${HOSTNAME}.key ${HOSTNAME}.crt /var/lib/kubelet/
+  sudo mv ${HOSTNAME}.key ${HOSTNAME}.crt /var/lib/kubernetes/pki/
   sudo mv ${HOSTNAME}.kubeconfig /var/lib/kubelet/kubeconfig
   sudo mv ca.crt /var/lib/kubernetes/pki/
-  sudo chwon root:root /var/lib/kubernetes/pki/ca.crt
-  sudo chmod 600 /var/lib/kubernetes/pki/ca.crt
+  sudo mv kube-proxy.crt kube-proxy.key /var/lib/kubernetes/pki/
+  sudo chown root:root /var/lib/kubernetes/pki/*
+  sudo chmod 600 /var/lib/kubernetes/pki/*
   sudo chown root:root /var/lib/kubelet/*
   sudo chmod 600 /var/lib/kubelet/*
 }
@@ -182,7 +152,7 @@ POD_CIDR=10.244.0.0/16
 SERVICE_CIDR=10.96.0.0/16
 ```
 
-Compute cluster DNS addess, which is always .10 in the service CIDR range
+Compute cluster DNS addess, which is conventionally .10 in the service CIDR range
 
 ```bash
 CLUSTER_DNS=$(echo $SERVICE_CIDR | awk 'BEGIN {FS="."} ; { printf("%s.%s.%s.10", $1, $2, $3) }')
@@ -208,8 +178,8 @@ clusterDNS:
   - ${CLUSTER_DNS}
 resolvConf: /run/systemd/resolve/resolv.conf
 runtimeRequestTimeout: "15m"
-tlsCertFile: /var/lib/kubelet/${HOSTNAME}.crt
-tlsPrivateKeyFile: /var/lib/kubelet/${HOSTNAME}.key
+tlsCertFile: /var/lib/kubernetes/pki/${HOSTNAME}.crt
+tlsPrivateKeyFile: /var/lib/kubernetes/pki/${HOSTNAME}.key
 registerNode: true
 EOF
 ```
@@ -303,9 +273,11 @@ kubectl get nodes --kubeconfig admin.kubeconfig
 > output
 
 ```
-NAME       STATUS  ROLES    AGE   VERSION
-worker-1   Ready   <none>   93s   v1.24.3
+NAME       STATUS     ROLES    AGE   VERSION
+worker-1   NotReady   <none>   93s   v1.24.3
 ```
 
-Prev: [Bootstrapping the Kubernetes Control Plane](08-bootstrapping-kubernetes-controllers.md)<br>
-Next: [TLS Bootstrapping Kubernetes Workers](10-tls-bootstrapping-kubernetes-workers.md)
+The node is not ready as we have not yet installed pod networking. This comes later.
+
+Prev: [Installing CNI on the Kubernetes Worker Nodes](09-install-cni-workers.md)<br>
+Next: [TLS Bootstrapping Kubernetes Workers](11-tls-bootstrapping-kubernetes-workers.md)

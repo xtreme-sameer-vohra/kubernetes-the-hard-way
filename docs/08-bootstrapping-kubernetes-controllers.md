@@ -43,12 +43,12 @@ Place the key pairs into the kubernetes data directory and secure
 {
   sudo mkdir -p /var/lib/kubernetes/pki
 
-  # Only copy CA keys as we'll need them again for workers if we are running the installation from master-1
+  # Only copy CA keys as we'll need them again for workers.
   sudo cp ca.crt ca.key /var/lib/kubernetes/pki
-  sudo mv kube-apiserver.crt kube-apiserver.key \
-    service-account.key service-account.crt \
-    apiserver-kubelet-client.crt apiserver-kubelet-client.key \
-    etcd-server.key etcd-server.crt /var/lib/kubernetes/pki
+  for c in kube-apiserver service-account apiserver-kubelet-client etcd-server kube-scheduler kube-controller-manager kube-proxy
+  do
+    sudo mv "$c.crt" "$c.key" /var/lib/kubernetes/pki/
+  done
   sudo chown root:root /var/lib/kubernetes/pki/*
   sudo chmod 600 /var/lib/kubernetes/pki/*
 }
@@ -60,6 +60,13 @@ Retrieve these internal IP addresses:
 ```bash
 INTERNAL_IP=$(ip addr show enp0s8 | grep "inet " | awk '{print $2}' | cut -d / -f 1)
 LOADBALANCER=$(dig +short loadbalancer)
+```
+
+IP addresses of the two master nodes, where the etcd servers are.
+
+```bash
+MASTER_1=$(dig +short master-1)
+MASTER_2=$(dig +short master-2)
 ```
 
 CIDR ranges used *within* the cluster
@@ -94,7 +101,7 @@ ExecStart=/usr/local/bin/kube-apiserver \\
   --etcd-cafile=/var/lib/kubernetes/pki/ca.crt \\
   --etcd-certfile=/var/lib/kubernetes/pki/etcd-server.crt \\
   --etcd-keyfile=/var/lib/kubernetes/pki/etcd-server.key \\
-  --etcd-servers=https://192.168.56.11:2379,https://192.168.56.12:2379 \\
+  --etcd-servers=https://${MASTER_1}:2379,https://${MASTER_2}:2379 \\
   --event-ttl=1h \\
   --encryption-provider-config=/var/lib/kubernetes/encryption-config.yaml \\
   --kubelet-certificate-authority=/var/lib/kubernetes/pki/ca.crt \\
@@ -135,14 +142,20 @@ Documentation=https://github.com/kubernetes/kubernetes
 
 [Service]
 ExecStart=/usr/local/bin/kube-controller-manager \\
-  --bind-address=0.0.0.0 \\
+  --allocate-node-cidrs=true \\
+  --authentication-kubeconfig=/var/lib/kubernetes/kube-controller-manager.kubeconfig \\
+  --authorization-kubeconfig=/var/lib/kubernetes/kube-controller-manager.kubeconfig \\
+  --bind-address=127.0.0.1 \\
+  --client-ca-file=/var/lib/kubernetes/pki/ca.crt \\
   --cluster-cidr=${POD_CIDR} \\
   --cluster-name=kubernetes \\
   --cluster-signing-cert-file=/var/lib/kubernetes/pki/ca.crt \\
   --cluster-signing-key-file=/var/lib/kubernetes/pki/ca.key \\
+  --controllers=*,bootstrapsigner,tokencleaner \\
   --kubeconfig=/var/lib/kubernetes/kube-controller-manager.kubeconfig \\
   --leader-elect=true \\
   --node-cidr-mask-size=24 \\
+  --requestheader-client-ca-file=/var/lib/kubernetes/pki/ca.crt \\
   --root-ca-file=/var/lib/kubernetes/pki/ca.crt \\
   --service-account-private-key-file=/var/lib/kubernetes/pki/service-account.key \\
   --service-cluster-ip-range=${SERVICE_CIDR} \\
@@ -214,6 +227,7 @@ It will give you a deprecation warning here, but that's ok.
 > Output
 
 ```
+Warning: v1 ComponentStatus is deprecated in v1.19+
 NAME                 STATUS    MESSAGE              ERROR
 controller-manager   Healthy   ok
 scheduler            Healthy   ok
@@ -266,7 +280,7 @@ EOF
 ```
 
 ```bash
-sudo service haproxy restart
+sudo systemctl restart haproxy
 ```
 
 ### Verification
@@ -294,4 +308,4 @@ curl  https://${LOADBALANCER}:6443/version -k
 ```
 
 Prev: [Bootstrapping the etcd Cluster](07-bootstrapping-etcd.md)<br>
-Next: [Bootstrapping the Kubernetes Worker Nodes](09-bootstrapping-kubernetes-workers.md)
+Next: [Installing CNI on the Kubernetes Worker Nodes](09-install-cni-workers.md)

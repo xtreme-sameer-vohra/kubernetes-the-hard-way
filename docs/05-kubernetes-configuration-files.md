@@ -1,6 +1,10 @@
 # Generating Kubernetes Configuration Files for Authentication
 
-In this lab you will generate [Kubernetes configuration files](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/), also known as kubeconfigs, which enable Kubernetes clients to locate and authenticate to the Kubernetes API Servers.
+In this lab you will generate [Kubernetes configuration files](https://kubernetes.io/docs/concepts/configuration/organize-cluster-access-kubeconfig/), also known as "kubeconfigs", which enable Kubernetes clients to locate and authenticate to the Kubernetes API Servers.
+
+Note: It is good practice to use file paths to certificates in kubeconfigs that will be used by the services. When certificates are updated, it is not necessary to regenerate the config files, as you would have to if the certificate data was embedded. Note also that the cert files don't exist in these paths yet - we will place them in later labs.
+
+User configs, like admin.kubeconfig will have the certificate info embedded within them.
 
 ## Client Authentication Configs
 
@@ -8,7 +12,7 @@ In this section you will generate kubeconfig files for the `controller manager`,
 
 ### Kubernetes Public IP Address
 
-Each kubeconfig requires a Kubernetes API Server to connect to. To support high availability the IP address assigned to the load balancer will be used. In our case it is `192.168.56.30`
+Each kubeconfig requires a Kubernetes API Server to connect to. To support high availability the IP address assigned to the load balancer will be used, so let's first get the address of the loadbalancer into a shell variable such that we can use it in the kubeconfigs for services that run on worker nodes. The controller manager and scheduler need to talk to the local API server, hence they use the localhost address.
 
 ```bash
 LOADBALANCER=$(dig +short loadbalancer)
@@ -21,15 +25,13 @@ Generate a kubeconfig file for the `kube-proxy` service:
 ```bash
 {
   kubectl config set-cluster kubernetes-the-hard-way \
-    --certificate-authority=ca.crt \
-    --embed-certs=true \
+    --certificate-authority=/var/lib/kubernetes/pki/ca.crt \
     --server=https://${LOADBALANCER}:6443 \
     --kubeconfig=kube-proxy.kubeconfig
 
   kubectl config set-credentials system:kube-proxy \
-    --client-certificate=kube-proxy.crt \
-    --client-key=kube-proxy.key \
-    --embed-certs=true \
+    --client-certificate=/var/lib/kubernetes/pki/kube-proxy.crt \
+    --client-key=/var/lib/kubernetes/pki/kube-proxy.key \
     --kubeconfig=kube-proxy.kubeconfig
 
   kubectl config set-context default \
@@ -56,15 +58,13 @@ Generate a kubeconfig file for the `kube-controller-manager` service:
 ```bash
 {
   kubectl config set-cluster kubernetes-the-hard-way \
-    --certificate-authority=ca.crt \
-    --embed-certs=true \
+    --certificate-authority=/var/lib/kubernetes/pki/ca.crt \
     --server=https://127.0.0.1:6443 \
     --kubeconfig=kube-controller-manager.kubeconfig
 
   kubectl config set-credentials system:kube-controller-manager \
-    --client-certificate=kube-controller-manager.crt \
-    --client-key=kube-controller-manager.key \
-    --embed-certs=true \
+    --client-certificate=/var/lib/kubernetes/pki/kube-controller-manager.crt \
+    --client-key=/var/lib/kubernetes/pki/kube-controller-manager.key \
     --kubeconfig=kube-controller-manager.kubeconfig
 
   kubectl config set-context default \
@@ -91,15 +91,13 @@ Generate a kubeconfig file for the `kube-scheduler` service:
 ```bash
 {
   kubectl config set-cluster kubernetes-the-hard-way \
-    --certificate-authority=ca.crt \
-    --embed-certs=true \
+    --certificate-authority=/var/lib/kubernetes/pki/ca.crt \
     --server=https://127.0.0.1:6443 \
     --kubeconfig=kube-scheduler.kubeconfig
 
   kubectl config set-credentials system:kube-scheduler \
-    --client-certificate=kube-scheduler.crt \
-    --client-key=kube-scheduler.key \
-    --embed-certs=true \
+    --client-certificate=/var/lib/kubernetes/pki/kube-scheduler.crt \
+    --client-key=/var/lib/kubernetes/pki/kube-scheduler.key \
     --kubeconfig=kube-scheduler.kubeconfig
 
   kubectl config set-context default \

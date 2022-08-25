@@ -47,6 +47,8 @@ The network used by the Virtual Box virtual machines is `10.56.0.0/24`.
 
 To change this, edit the [Vagrantfile](../vagrant/Vagrantfile) and set the new value for the network prefix at line 9. This should not overlap any of the other network settings.
 
+It is *recommended* that you leave the pod and service networks with the following defaults. If you change them then you will also need to edit one or both of the CoreDNS and Weave networking manifests to accommodate your change.
+
 ### Pod Network
 
 The network used to assign IP addresses to pods is `10.244.0.0/16`.
@@ -73,6 +75,6 @@ Additionally edit line 164 of [coredns.yaml](../deployments/coredns.yaml) to set
 
 ![tmux screenshot](images/tmux-screenshot.png)
 
-> Enable synchronize-panes by pressing `ctrl+b` followed by `"` to split the window into two panes. In each pane (selectable with mouse), ssh to the host(s) you will be working with.<br>Next type `ctrl+x` at the prompt to begin sync. In sync mode, the dividing line between panes will be red. Everything you type in one pane will be echoed in the other.<br>To disable synchronization type `ctrl+x` again.
+> Enable synchronize-panes by pressing `CTRL+B` followed by `"` to split the window into two panes. In each pane (selectable with mouse), ssh to the host(s) you will be working with.</br>Next type `CTRL+X` at the prompt to begin sync. In sync mode, the dividing line between panes will be red. Everything you type or paste in one pane will be echoed in the other.<br>To disable synchronization type `CTRL+X` again.</br></br>Note that the `CTRL-X` key binding is provided by a `.tmux.conf` loaded onto the VM by the vagrant provisioner.
 
 Next: [Compute Resources](02-compute-resources.md)

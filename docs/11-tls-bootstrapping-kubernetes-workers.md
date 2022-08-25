@@ -41,10 +41,10 @@ So let's get started!
 
 > Note: We have already configured these in lab 8 in this course
 
-Copy the ca certificate to the worker node:
+Copy the required certificates to the worker node:
 
 ```bash
-scp ca.crt worker-2:~/
+scp ca.crt kube-proxy.crt kube-proxy.key worker-2:~/
 ```
 
 # Step 1 Create the Boostrap Token to be used by Nodes(Kubelets) to invoke Certificate API
@@ -139,11 +139,17 @@ kubectl create -f csrs-for-bootstrapping.yaml --kubeconfig admin.kubeconfig
 ```
 Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/#authorize-kubelet-to-create-csr
 
-## Step 3 Authorize workers(kubelets) to approve CSR
+## Step 3 Authorize workers(kubelets) to approve CSRs
+
 ```bash
 kubectl create clusterrolebinding auto-approve-csrs-for-group \
   --clusterrole=system:certificates.k8s.io:certificatesigningrequests:nodeclient \
   --group=system:bootstrappers \
+  --kubeconfig admin.kubeconfig
+
+kubectl create clusterrolebinding auto-approve-renewals-for-nodes \
+  --clusterrole=system:certificates.k8s.io:certificatesigningrequests:selfnodeclient \
+  --group=system:nodes \
   --kubeconfig admin.kubeconfig
 ```
 
@@ -166,9 +172,27 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 EOF
 
+cat > auto-approve-renewals-for-nodes.yaml <<EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: auto-approve-renewals-for-nodes
+subjects:
+- kind: Group
+  name: system:nodes
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: system:certificates.k8s.io:certificatesigningrequests:selfnodeclient
+  apiGroup: rbac.authorization.k8s.io
+EOF
 
 kubectl create -f auto-approve-csrs-for-group.yaml --kubeconfig admin.kubeconfig
+kubectl create -f auto-approve-renewals-for-nodes.yaml --kubeconfig admin.kubeconfig
 ```
+
+
+
 
 Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/#approval
 
@@ -210,39 +234,13 @@ Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kub
 
 ## Step 5 Configure the Binaries on the Worker node
 
-### Download and Install Container Networking
-
 Going forward all activities are to be done on the `worker-2` node.
-
-Set up `containerd` and the CNI plugins. [containerd replaces docker](https://kodekloud.com/blog/kubernetes-removed-docker-what-happens-now/) as the container runtime for Kubernetes from v1.24 onwards.
-
-Containerd, runc, CNI plugins and crictl
-
-We extract this directly to `/` as the containerd guys have helpfully arranged the entire directory structure within the tarball.
-
-```bash
-{
-  wget -q --show-progress --https-only --timestamping \
-    https://github.com/containerd/containerd/releases/download/v1.6.6/cri-containerd-cni-1.6.6-linux-amd64.tar.gz
-
-  sudo tar -xzvf cri-containerd-cni-1.6.6-linux-amd64.tar.gz -C /
-}
-```
-
-Next, enable and start the containerd service
-
-```bash
-{
-  sudo systemctl enable containerd
-  sudo systemctl start containerd
-}
-```
 
 
 ### Download and Install Worker Binaries
 
-```
-worker-2$ wget -q --show-progress --https-only --timestamping \
+```bash
+wget -q --show-progress --https-only --timestamping \
   https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubectl \
   https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kube-proxy \
   https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubelet
@@ -268,14 +266,13 @@ Install the worker binaries:
   sudo mv kubectl kube-proxy kubelet /usr/local/bin/
 }
 ```
-Move the ca certificate and secure it.
+Move the certificates and secure them.
 
 ```bash
-sudo mv ca.crt /var/lib/kubernetes/pki
-sudo chown root:root /var/lib/kubernetes/pki/ca.crt
-sudo chmod 600 /var/lib/kubernetes/pki/ca.crt
+sudo mv ca.crt kube-proxy.crt kube-proxy.key /var/lib/kubernetes/pki
+sudo chown root:root /var/lib/kubernetes/pki/*
+sudo chmod 600 /var/lib/kubernetes/pki/*
 ```
-
 
 ## Step 6 Configure Kubelet to TLS Bootstrap
 
@@ -452,24 +449,24 @@ On worker-2:
 
 ## Step 11 Approve Server CSR
 
-Now, go back to `master-1`
+Now, go back to `master-1` and approve the pending kubelet-serving certificate
 
 ```bash
-kubectl get csr
+kubectl get csr --kubeconfig admin.kubeconfig
 ```
 
 > Output
 
 ```
-NAME                                                   AGE   REQUESTOR                 CONDITION
-csr-95bv6                                              20s   system:node:worker-2      Pending
+NAME        AGE     SIGNERNAME                      REQUESTOR              REQUESTEDDURATION   CONDITION
+csr-7s92j   5m18s   kubernetes.io/kubelet-serving   system:node:worker-2   <none>              Pending
 ```
 
 
 Approve
 
 ```bash
-master-1$ kubectl certificate approve csr-95bv6
+kubectl certificate approve csr-7s92j --kubeconfig admin.kubeconfig
 ```
 
 
@@ -488,11 +485,10 @@ kubectl get nodes --kubeconfig admin.kubeconfig
 > output
 
 ```
-NAME       STATUS   ROLES    AGE   VERSION
-worker-1   NotReady   <none>   93s   v1.24.3
-worker-2   NotReady   <none>   93s   v1.24.3
+NAME       STATUS      ROLES    AGE   VERSION
+worker-1   NotReady    <none>   93s   v1.24.3
+worker-2   NotReady    <none>   93s   v1.24.3
 ```
-Note: It is OK for the worker node to be in a NotReady state. That is because we haven't configured Networking yet.
 
-Prev: [Bootstrapping the Kubernetes Worker Nodes](09-bootstrapping-kubernetes-workers.md)</br>
-Next: [Configuring Kubectl](11-configuring-kubectl.md)
+Prev: [Bootstrapping the Kubernetes Worker Nodes](10-bootstrapping-kubernetes-workers.md)</br>
+Next: [Configuring Kubectl](12-configuring-kubectl.md)

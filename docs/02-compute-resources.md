@@ -65,7 +65,7 @@ Vagrant generates a private key for each of these VMs. It is placed under the .v
 
 **Private Key Path:** `.vagrant/machines/<machine name>/virtualbox/private_key`
 
-**Username:** `vagrant`
+**Username/Password:** `vagrant/vagrant`
 
 
 ## Verify Environment

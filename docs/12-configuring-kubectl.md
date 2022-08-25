@@ -48,6 +48,7 @@ kubectl get componentstatuses
 > output
 
 ```
+Warning: v1 ComponentStatus is deprecated in v1.19+
 NAME                 STATUS    MESSAGE             ERROR
 controller-manager   Healthy   ok
 scheduler            Healthy   ok
@@ -57,17 +58,17 @@ etcd-0               Healthy   {"health":"true"}
 
 List the nodes in the remote Kubernetes cluster:
 
-```
+```bash
 kubectl get nodes
 ```
 
 > output
 
 ```
-NAME       STATUS   ROLES    AGE    VERSION
-worker-1   Ready    <none>   118s   v1.24.3
-worker-2   Ready    <none>   118s   v1.24.3
+NAME       STATUS      ROLES    AGE    VERSION
+worker-1   NotReady    <none>   118s   v1.24.3
+worker-2   NotReady    <none>   118s   v1.24.3
 ```
 
-Prev: [TLS Bootstrapping Kubernetes Workers](10-tls-bootstrapping-kubernetes-workers.md)</br>
-Next: [Deploy Pod Networking](12-configure-pod-networking.md)
+Prev: [TLS Bootstrapping Kubernetes Workers](11-tls-bootstrapping-kubernetes-workers.md)</br>
+Next: [Deploy Pod Networking](13-configure-pod-networking.md)

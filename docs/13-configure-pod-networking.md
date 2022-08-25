@@ -5,7 +5,7 @@ We chose to use CNI - [weave](https://www.weave.works/docs/net/latest/kubernetes
 
 ### Deploy Weave Network
 
-Deploy weave network. Run only once on the `master` node.
+Deploy weave network. Run only once on the `master` node. You will see a warning, but this is OK.
 
 
 ```bash
@@ -30,7 +30,21 @@ weave-net-58j2j   2/2     Running   0          89s
 weave-net-rr5dk   2/2     Running   0          89s
 ```
 
+Once the Weave pods are fully running, the nodes should be ready
+
+```bash
+kubectl get nodes
+```
+
+> Output
+
+```
+NAME       STATUS   ROLES    AGE     VERSION
+worker-1   Ready    <none>   4m11s   v1.24.3
+worker-2   Ready    <none>   2m49s   v1.24.3
+```
+
 Reference: https://kubernetes.io/docs/tasks/administer-cluster/network-policy-provider/weave-network-policy/#install-the-weave-net-addon
 
-Prev: [Configuring Kubectl](11-configuring-kubectl.md)</br>
-Next: [Kube API Server to Kubelet Connectivity](13-kube-apiserver-to-kubelet.md)
+Prev: [Configuring Kubectl](12-configuring-kubectl.md)</br>
+Next: [Kube API Server to Kubelet Connectivity](14-kube-apiserver-to-kubelet.md)

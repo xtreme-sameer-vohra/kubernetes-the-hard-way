@@ -21,7 +21,7 @@ MASTER_2=$(dig +short master-2)
 LOADBALANCER=$(dig +short loadbalancer)
 ```
 
-Compute cluster internal API server address, which is always .1 in the service CIDR range. This is also required as a SAN in the API server certificate
+Compute cluster internal API server service address, which is always .1 in the service CIDR range. This is also required as a SAN in the API server certificate
 
 ```bash
 SERVICE_CIDR=10.96.0.0/24
@@ -330,7 +330,7 @@ If there are any errors, please review above steps and then re-verify
 
 ## Distribute the Certificates
 
-Copy the appropriate certificates and private keys to each controller instance:
+Copy the appropriate certificates and private keys to each instance:
 
 ```bash
 for instance in master-1 master-2; do
@@ -338,11 +338,15 @@ for instance in master-1 master-2; do
     apiserver-kubelet-client.crt apiserver-kubelet-client.key \
     service-account.key service-account.crt \
     etcd-server.key etcd-server.crt \
+    kube-controller-manager.key kube-controller-manager.crt \
+    kube-scheduler.key kube-scheduler.crt \
     ${instance}:~/
 done
-```
 
-> The `kube-proxy`, `kube-controller-manager`, `kube-scheduler`, and `kubelet` client certificates will be used to generate client authentication configuration files in the next lab. These certificates will be embedded into the client authentication configuration files. We will then copy those configuration files to the other master nodes.
+for instance in worker-1 worker-2 ; do
+  scp ca.crt kube-proxy.crt kube-proxy.key ${instance}:~/
+done
+```
 
 Prev: [Client tools](03-client-tools.md)<br>
 Next: [Generating Kubernetes Configuration Files for Authentication](05-kubernetes-configuration-files.md)
