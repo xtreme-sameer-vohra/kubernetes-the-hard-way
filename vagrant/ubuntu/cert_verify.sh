@@ -1,21 +1,25 @@
 #!/bin/bash
 set -e
-set -x
+#set -x
 
 # Green & Red marking for Success and Failed messages
 SUCCESS='\033[0;32m'
-FAILED='\033[0;31m'
+FAILED='\033[0;31;1m'
 NC='\033[0m'
 
-# All Cert Location
+# IP addresses
+INTERNAL_IP=$(ip addr show enp0s8 | grep "inet " | awk '{print $2}' | cut -d / -f 1)
+MASTER_1=$(dig +short master-1)
+MASTER_2=$(dig +short master-2)
+WORKER_1=$(dig +short worker-1)
+WORKER_2=$(dig +short worker-2)
+LOADBALANCER=$(dig +short loadbalancer)
+LOCALHOST="127.0.0.1"
 
+# All Cert Location
 # ca certificate location
 CACERT=ca.crt
 CAKEY=ca.key
-
-# admin certificate location
-ADMINCERT=admin.crt
-ADMINKEY=admin.key
 
 # Kube controller manager certificate location
 KCMCERT=kube-controller-manager.crt
@@ -91,30 +95,18 @@ SYSTEMD_WORKER_1_KP=/etc/systemd/system/kube-proxy.service
 
 # Function - Master node #
 
-check_cert()
+check_cert_and_key()
 {
     local name=$1
     local subject=$2
     local issuer=$3
-    local cert
-    local key
-
-    if [ "$name" == "admin" ]
-    then
-        cert="$1.crt"
-        key="$1.key"
-    else
-        for dir in /var/lib/kubernetes/pki /etc/etcd /var/lib/kubelet
-        do
-            [ -f "${dir}/$1.crt" ] && cert="${dir}/$1.crt"
-            [ -f "${dir}/$1.key" ] && key="${dir}/$1.key"
-            [ -n "$cert" -a -n "$key" ] && break
-        done
-    fi
+    local nokey=
+    local cert="${CERT_LOCATION}/$1.crt"
+    local key="${CERT_LOCATION}/$1.key"
 
     if [ -z $cert -o -z $key ]
         then
-            printf "${FAILED}cert and key not present in any of the configured locations. Perhaps you missed a copy step\n${NC}"
+            printf "${FAILED}cert and/or key not present in ${CERT_LOCATION}. Perhaps you missed a copy step\n${NC}"
             exit 1
         elif [ -f $cert -a -f $key ]
             then
@@ -125,9 +117,9 @@ check_cert()
                 KEY_MD5=$(sudo openssl rsa -noout -modulus -in $key | openssl md5| awk '{print $2}')
                 if [ $CERT_SUBJECT == "${subject}" ] && [ $CERT_ISSUER == "${issuer}" ] && [ $CERT_MD5 == $KEY_MD5 ]
                     then
-                        printf "${SUCCESS}${name} cert and key are correct\n"
+                        printf "${SUCCESS}${name} cert and key are correct\n${NC}"
                     else
-                        printf "${FAILED}Exiting...Found mismtach in the CA certificate and keys, More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/04-certificate-authority.md#certificate-authority\n${NC}"
+                        printf "${FAILED}Exiting...Found mismtach in the ${name} certificate and keys, More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/04-certificate-authority.md#certificate-authority\n${NC}"
                         exit 1
                 fi
             else
@@ -137,84 +129,36 @@ check_cert()
     fi
 }
 
-check_cert_kpkubeconfig()
+check_cert_only()
 {
-    if [ -z $KPKUBECONFIG ]
+    local name=$1
+    local subject=$2
+    local issuer=$3
+    local cert="${CERT_LOCATION}/$1.crt"
+
+    # Worker-2 auto cert is a .pem
+    [ -f "${CERT_LOCATION}/$1.pem" ] && cert="${CERT_LOCATION}/$1.pem"
+
+    if [ -z $cert ]
         then
-            printf "${FAILED}please specify kube-proxy kubeconfig location\n${NC}"
+            printf "${FAILED}cert not present in ${CERT_LOCATION}. Perhaps you missed a copy step\n${NC}"
             exit 1
-        elif [ -f $KPKUBECONFIG ]
+        elif [ -f $cert ]
             then
-                printf "${NC}kube-proxy kubeconfig file found, verifying the authenticity\n"
-                KPKUBECONFIG_SUBJECT=$(cat $KPKUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | sudo openssl x509 -text | grep "Subject: CN" | tr -d " ")
-                KPKUBECONFIG_ISSUER=$(cat $KPKUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | sudo openssl x509 -text | grep "Issuer: CN" | tr -d " ")
-                KPKUBECONFIG_CERT_MD5=$(cat $KPKUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | sudo openssl x509 -noout | openssl md5 | awk '{print $2}')
-                KPKUBECONFIG_KEY_MD5=$(cat $KPKUBECONFIG | grep "client-key-data" | awk '{print $2}' | base64 --decode | openssl rsa -noout | openssl md5 | awk '{print $2}')
-                KPKUBECONFIG_SERVER=$(cat $KPKUBECONFIG | grep "server:"| awk '{print $2}')
-                if [ $KPKUBECONFIG_SUBJECT == "Subject:CN=system:kube-proxy" ] && [ $KPKUBECONFIG_ISSUER == "Issuer:CN=KUBERNETES-CA,O=Kubernetes" ] && [ $KPKUBECONFIG_CERT_MD5 == $KPKUBECONFIG_KEY_MD5 ] && [ $KPKUBECONFIG_SERVER == "https://192.168.56.30:6443" ]
+                printf "${NC}${name} cert found, verifying the authenticity\n"
+                CERT_SUBJECT=$(sudo openssl x509 -in $cert -text | grep "Subject: "| tr -d " ")
+                CERT_ISSUER=$(sudo openssl x509 -in $cert -text | grep "Issuer: CN"| tr -d " ")
+                CERT_MD5=$(sudo openssl x509 -noout -modulus -in $cert | openssl md5| awk '{print $2}')
+                if [ $CERT_SUBJECT == "${subject}" ] && [ $CERT_ISSUER == "${issuer}" ]
                     then
-                        printf "${SUCCESS}kube-proxy kubeconfig cert and key are correct\n"
+                        printf "${SUCCESS}${name} cert is correct\n${NC}"
                     else
-                        printf "${FAILED}Exiting...Found mismtach in the kube-proxy kubeconfig certificate and keys, More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/05-kubernetes-configuration-files.md#the-kube-proxy-kubernetes-configuration-file\n${NC}"
+                        printf "${FAILED}Exiting...Found mismtach in the ${name} certificate, More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/04-certificate-authority.md#certificate-authority\n${NC}"
                         exit 1
                 fi
             else
-                printf "${FAILED}kube-proxy kubeconfig file is missing. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/05-kubernetes-configuration-files.md#the-kube-proxy-kubernetes-configuration-file\n${NC}"
-                exit 1
-    fi
-}
-
-check_cert_kcmkubeconfig()
-{
-    if [ -z $KCMKUBECONFIG ]
-        then
-            printf "${FAILED}please specify kube-controller-manager kubeconfig location\n${NC}"
-            exit 1
-        elif [ -f $KCMKUBECONFIG ]
-            then
-                printf "${NC}kube-controller-manager kubeconfig file found, verifying the authenticity\n"
-                KCMKUBECONFIG_SUBJECT=$(cat $KCMKUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | sudo openssl x509 -text | grep "Subject: CN" | tr -d " ")
-                KCMKUBECONFIG_ISSUER=$(cat $KCMKUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | sudo openssl x509 -text | grep "Issuer: CN" | tr -d " ")
-                KCMKUBECONFIG_CERT_MD5=$(cat $KCMKUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | sudo openssl x509 -noout | openssl md5 | awk '{print $2}')
-                KCMKUBECONFIG_KEY_MD5=$(cat $KCMKUBECONFIG | grep "client-key-data" | awk '{print $2}' | base64 --decode | openssl rsa -noout | openssl md5 | awk '{print $2}')
-                KCMKUBECONFIG_SERVER=$(cat $KCMKUBECONFIG | grep "server:"| awk '{print $2}')
-                if [ $KCMKUBECONFIG_SUBJECT == "Subject:CN=system:kube-controller-manager" ] && [ $KCMKUBECONFIG_ISSUER == "Issuer:CN=KUBERNETES-CA,O=Kubernetes" ] && [ $KCMKUBECONFIG_CERT_MD5 == $KCMKUBECONFIG_KEY_MD5 ] && [ $KCMKUBECONFIG_SERVER == "https://127.0.0.1:6443" ]
-                    then
-                        printf "${SUCCESS}kube-controller-manager kubeconfig cert and key are correct\n"
-                    else
-                        printf "${FAILED}Exiting...Found mismtach in the kube-controller-manager kubeconfig certificate and keys, More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/05-kubernetes-configuration-files.md#the-kube-controller-manager-kubernetes-configuration-file\n"
-                        exit 1
-                fi
-            else
-                printf "${FAILED}kube-controller-manager kubeconfig file is missing. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/05-kubernetes-configuration-files.md#the-kube-controller-manager-kubernetes-configuration-file\n"
-                exit 1
-    fi
-}
-
-
-check_cert_kskubeconfig()
-{
-    if [ -z $KSKUBECONFIG ]
-        then
-            printf "${FAILED}please specify kube-scheduler kubeconfig location\n${NC}"
-            exit 1
-        elif [ -f $KSKUBECONFIG ]
-            then
-                printf "${NC}kube-scheduler kubeconfig file found, verifying the authenticity\n"
-                KSKUBECONFIG_SUBJECT=$(cat $KSKUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | sudo openssl x509 -text | grep "Subject: CN" | tr -d " ")
-                KSKUBECONFIG_ISSUER=$(cat $KSKUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | sudo openssl x509 -text | grep "Issuer: CN" | tr -d " ")
-                KSKUBECONFIG_CERT_MD5=$(cat $KSKUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | sudo openssl x509 -noout | openssl md5 | awk '{print $2}')
-                KSKUBECONFIG_KEY_MD5=$(cat $KSKUBECONFIG | grep "client-key-data" | awk '{print $2}' | base64 --decode | openssl rsa -noout | openssl md5 | awk '{print $2}')
-                KSKUBECONFIG_SERVER=$(cat $KSKUBECONFIG | grep "server:"| awk '{print $2}')
-                if [ $KSKUBECONFIG_SUBJECT == "Subject:CN=system:kube-scheduler" ] && [ $KSKUBECONFIG_ISSUER == "Issuer:CN=KUBERNETES-CA,O=Kubernetes" ] && [ $KSKUBECONFIG_CERT_MD5 == $KSKUBECONFIG_KEY_MD5 ] && [ $KSKUBECONFIG_SERVER == "https://127.0.0.1:6443" ]
-                    then
-                        printf "${SUCCESS}kube-scheduler kubeconfig cert and key are correct\n"
-                    else
-                        printf "${FAILED}Exiting...Found mismtach in the kube-scheduler kubeconfig certificate and keys, More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/05-kubernetes-configuration-files.md#the-kube-scheduler-kubernetes-configuration-file\n"
-                        exit 1
-                fi
-            else
-                printf "${FAILED}kube-scheduler kubeconfig file is missing. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/05-kubernetes-configuration-files.md#the-kube-scheduler-kubernetes-configuration-file\n"
+                printf "${FAILED}${cert} missing. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/04-certificate-authority.md#certificate-authority\n${NC}"
+                echo "These should be in ${CERT_LOCATION}${NC}"
                 exit 1
     fi
 }
@@ -246,6 +190,76 @@ check_cert_adminkubeconfig()
     fi
 }
 
+
+get_kubeconfig_cert_path()
+{
+    local kubeconfig=$1
+    local cert_field=$2
+
+    sudo cat $kubeconfig | grep cert_field | awk '{print $2}'
+}
+
+check_kubeconfig()
+{
+    local name=$1
+    local location=$2
+    local apiserver=$3
+    local kubeconfig="${location}/${name}.kubeconfig"
+
+    echo "Checking $kubeconfig"
+    check_kubeconfig_exists $name $location
+    ca=$(get_kubeconfig_cert_path $kubeconfig "certificate-authority")
+    cert=$(get_kubeconfig_cert_path $kubeconfig "client-certificate")
+    key=$(get_kubeconfig_cert_path $kubeconfig "client-key")
+    server=$(sudo cat $kubeconfig | grep server | awk '{print $2}')
+
+    if [ -f "$ca"]
+    then
+        printf "${SUCCESS}Path to CA certificate is correct${NC}\n"
+    else
+        printf "${FAIL}CA certificate not found at ${ca}${NC}\n"
+        exit 1
+    fi
+
+    if [ -f "$cert"]
+    then
+        printf "${SUCCESS}Path to client certificate is correct${NC}\n"
+    else
+        printf "${FAIL}Client certificate not found at ${cert}${NC}\n"
+        exit 1
+    fi
+
+    if [ -f "$key"]
+    then
+        printf "${SUCCESS}Path to client key is correct${NC}\n"
+    else
+        printf "${FAIL}Client key not found at ${key}${NC}\n"
+        exit 1
+    fi
+
+    if [ "$apiserver" = "$server" ]
+    then
+        printf "${SUCCESS}Server URL is correct${NC}\n"
+    else
+        printf "${FAIL}Server URL ${server} is incorrect${NC}\n"
+        exit 1
+    fi
+}
+
+check_kubeconfig_exists() {
+    local name=$1
+    local location=$2
+    local kubeconfig="${location}/${name}.kubeconfig"
+
+    if [ -f "${kubeconfig}" ]
+    then
+        printf "${SUCCESS}${kubeconfig} found${NC}\n"
+    else
+        printf "${FAIL}${kubeconfig} not found!${NC}\n"
+        exit 1
+    fi
+}
+
 check_systemd_etcd()
 {
     if [ -z $ETCDCERT ] && [ -z $ETCDKEY ]
@@ -266,7 +280,7 @@ check_systemd_etcd()
                 PEER_TRUSTED_CA_FILE=$(systemctl cat etcd.service | grep "\--peer-trusted-ca-file"| awk '{print $1}'| cut -d "=" -f2)
 
                 # Systemd advertise , client and peer url's
-                INTERNAL_IP=$(ip addr show enp0s8 | grep "inet " | awk '{print $2}' | cut -d / -f 1)
+
                 IAP_URL=$(systemctl cat etcd.service | grep "\--initial-advertise-peer-urls"| awk '{print $2}')
                 LP_URL=$(systemctl cat etcd.service | grep "\--listen-peer-urls"| awk '{print $2}')
                 LC_URL=$(systemctl cat etcd.service | grep "\--listen-client-urls"| awk '{print $2}')
@@ -279,16 +293,16 @@ check_systemd_etcd()
                 if [ $CERT_FILE == $ETCDCERT ] && [ $KEY_FILE == $ETCDKEY ] && [ $PEER_CERT_FILE == $ETCDCERT ] && [ $PEER_KEY_FILE == $ETCDKEY ] && \
                    [ $TRUSTED_CA_FILE == $ETCD_CA_CERT ] && [ $PEER_TRUSTED_CA_FILE = $ETCD_CA_CERT ]
                     then
-                        printf "${SUCCESS}ETCD certificate, ca and key files are correct under systemd service\n"
+                        printf "${SUCCESS}ETCD certificate, ca and key files are correct under systemd service\n${NC}"
                     else
-                        printf "${FAILED}Exiting...Found mismtach in the ETCD certificate, ca and keys. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/07-bootstrapping-etcd.md#configure-the-etcd-server\n"
+                        printf "${FAILED}Exiting...Found mismtach in the ETCD certificate, ca and keys. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/07-bootstrapping-etcd.md#configure-the-etcd-server\n${NC}"
                         exit 1
                 fi
 
                 if [ $IAP_URL == "https://$INTERNAL_IP:2380" ] && [ $LP_URL == "https://$INTERNAL_IP:2380"  ] && [ $LC_URL == "https://$INTERNAL_IP:2379,https://127.0.0.1:2379" ] && \
                    [ $AC_URL == "https://$INTERNAL_IP:2379" ]
                     then
-                        printf "${SUCCESS}ETCD initial-advertise-peer-urls, listen-peer-urls, listen-client-urls, advertise-client-urls are correct\n"
+                        printf "${SUCCESS}ETCD initial-advertise-peer-urls, listen-peer-urls, listen-client-urls, advertise-client-urls are correct\n${NC}"
                     else
                         printf "${FAILED}Exiting...Found mismtach in the ETCD initial-advertise-peer-urls / listen-peer-urls / listen-client-urls / advertise-client-urls. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/07-bootstrapping-etcd.md#configure-the-etcd-server\n${NC}"
                         exit 1
@@ -308,9 +322,8 @@ check_systemd_api()
             exit 1
         elif [ -f $SYSTEMD_API_FILE ]
             then
-                printf "${NC}Systemd for kube-api service found, verifying the authenticity\n"
+                printf "Systemd for kube-api service found, verifying the authenticity\n"
 
-                INTERNAL_IP=$(ip addr show enp0s8 | grep "inet " | awk '{print $2}' | cut -d / -f 1)
                 ADVERTISE_ADDRESS=$(systemctl cat kube-apiserver.service | grep "\--advertise-address" | awk '{print $1}' | cut -d "=" -f2)
                 CLIENT_CA_FILE=$(systemctl cat kube-apiserver.service | grep "\--client-ca-file" | awk '{print $1}' | cut -d "=" -f2)
                 ETCD_CA_FILE=$(systemctl cat kube-apiserver.service | grep "\--etcd-cafile" | awk '{print $1}' | cut -d "=" -f2)
@@ -323,16 +336,19 @@ check_systemd_api()
                 TLS_CERT_FILE=$(systemctl cat kube-apiserver.service | grep "\--tls-cert-file" | awk '{print $1}' | cut -d "=" -f2)
                 TLS_PRIVATE_KEY_FILE=$(systemctl cat kube-apiserver.service | grep "\--tls-private-key-file" | awk '{print $1}' | cut -d "=" -f2)
 
-                CACERT=/var/lib/kubernetes/ca.crt
-                APICERT=/var/lib/kubernetes/kube-apiserver.crt
-                APIKEY=/var/lib/kubernetes/kube-apiserver.key
-                SACERT=/var/lib/kubernetes/service-account.crt
+                PKI=/var/lib/kubernetes/pki
+                CACERT="${PKI}/ca.crt"
+                APICERT="${PKI}/kube-apiserver.crt"
+                APIKEY="${PKI}/kube-apiserver.key"
+                SACERT="${PKI}/service-account.crt"
+                KCCERT="${PKI}/apiserver-kubelet-client.crt"
+                KCKEY="${PKI}/apiserver-kubelet-client.key"
                 if [ $ADVERTISE_ADDRESS == $INTERNAL_IP ] && [ $CLIENT_CA_FILE == $CACERT ] && [ $ETCD_CA_FILE == $CACERT ] && \
-                   [ $ETCD_CERT_FILE == "/var/lib/kubernetes/etcd-server.crt" ] && [ $ETCD_KEY_FILE == "/var/lib/kubernetes/etcd-server.key" ] && \
-                   [ $KUBELET_CERTIFICATE_AUTHORITY == $CACERT ] && [ $KUBELET_CLIENT_CERTIFICATE == $APICERT ] && [ $KUBELET_CLIENT_KEY == $APIKEY ] && \
+                   [ $ETCD_CERT_FILE == "${PKI}/etcd-server.crt" ] && [ $ETCD_KEY_FILE == "${PKI}/etcd-server.key" ] && \
+                   [ $KUBELET_CERTIFICATE_AUTHORITY == $CACERT ] && [ $KUBELET_CLIENT_CERTIFICATE == $KCCERT ] && [ $KUBELET_CLIENT_KEY == $KCKEY ] && \
                    [ $SERVICE_ACCOUNT_KEY_FILE == $SACERT ] && [ $TLS_CERT_FILE == $APICERT ] && [ $TLS_PRIVATE_KEY_FILE == $APIKEY ]
                     then
-                        printf "${SUCCESS}kube-apiserver advertise-address/ client-ca-file/ etcd-cafile/ etcd-certfile/ etcd-keyfile/ kubelet-certificate-authority/ kubelet-client-certificate/ kubelet-client-key/ service-account-key-file/ tls-cert-file/ tls-private-key-file are correct\n"
+                        printf "${SUCCESS}kube-apiserver advertise-address/ client-ca-file/ etcd-cafile/ etcd-certfile/ etcd-keyfile/ kubelet-certificate-authority/ kubelet-client-certificate/ kubelet-client-key/ service-account-key-file/ tls-cert-file/ tls-private-key-file are correct\n${NC}"
                     else
                         printf "${FAILED}Exiting...Found mismtach in the kube-apiserver systemd file, check advertise-address/ client-ca-file/ etcd-cafile/ etcd-certfile/ etcd-keyfile/ kubelet-certificate-authority/ kubelet-client-certificate/ kubelet-client-key/ service-account-key-file/ tls-cert-file/ tls-private-key-file. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/08-bootstrapping-kubernetes-controllers.md#configure-the-kubernetes-api-server\n${NC}"
                         exit 1
@@ -345,11 +361,11 @@ check_systemd_api()
 
 check_systemd_kcm()
 {
-    KCMCERT=/var/lib/kubernetes/kube-controller-manager.crt
-    KCMKEY=/var/lib/kubernetes/kube-controller-manager.key
-    CACERT=/var/lib/kubernetes/ca.crt
-    CAKEY=/var/lib/kubernetes/ca.key
-    SAKEY=/var/lib/kubernetes/service-account.key
+    KCMCERT=/var/lib/kubernetes/pki/kube-controller-manager.crt
+    KCMKEY=/var/lib/kubernetes/pki/kube-controller-manager.key
+    CACERT=/var/lib/kubernetes/pki/ca.crt
+    CAKEY=/var/lib/kubernetes/pki/ca.key
+    SAKEY=/var/lib/kubernetes/pki/service-account.key
     KCMKUBECONFIG=/var/lib/kubernetes/kube-controller-manager.kubeconfig
     if [ -z $KCMCERT ] && [ -z $KCMKEY ]
         then
@@ -357,7 +373,7 @@ check_systemd_kcm()
             exit 1
         elif [ -f $SYSTEMD_KCM_FILE ]
             then
-                printf "${NC}Systemd for kube-controller-manager service found, verifying the authenticity\n"
+                printf "Systemd for kube-controller-manager service found, verifying the authenticity\n"
                 CLUSTER_SIGNING_CERT_FILE=$(systemctl cat kube-controller-manager.service | grep "\--cluster-signing-cert-file" | awk '{print $1}' | cut -d "=" -f2)
                 CLUSTER_SIGNING_KEY_FILE=$(systemctl cat kube-controller-manager.service | grep "\--cluster-signing-key-file" | awk '{print $1}' | cut -d "=" -f2)
                 KUBECONFIG=$(systemctl cat kube-controller-manager.service | grep "\--kubeconfig" | awk '{print $1}' | cut -d "=" -f2)
@@ -367,21 +383,21 @@ check_systemd_kcm()
                 if [ $CLUSTER_SIGNING_CERT_FILE == $CACERT ] && [ $CLUSTER_SIGNING_KEY_FILE == $CAKEY ] && [ $KUBECONFIG == $KCMKUBECONFIG ] && \
                    [ $ROOT_CA_FILE == $CACERT ] && [ $SERVICE_ACCOUNT_PRIVATE_KEY_FILE == $SAKEY ]
                     then
-                        printf "${SUCCESS}kube-controller-manager cluster-signing-cert-file, cluster-signing-key-file, kubeconfig, root-ca-file, service-account-private-key-file  are correct\n"
+                        printf "${SUCCESS}kube-controller-manager cluster-signing-cert-file, cluster-signing-key-file, kubeconfig, root-ca-file, service-account-private-key-file  are correct\n${NC}"
                     else
-                        printf "${FAILED}Exiting...Found mismtach in the kube-controller-manager cluster-signing-cert-file, cluster-signing-key-file, kubeconfig, root-ca-file, service-account-private-key-file ,More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/08-bootstrapping-kubernetes-controllers.md#configure-the-kubernetes-controller-manager\n"
+                        printf "${FAILED}Exiting...Found mismtach in the kube-controller-manager cluster-signing-cert-file, cluster-signing-key-file, kubeconfig, root-ca-file, service-account-private-key-file. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/08-bootstrapping-kubernetes-controllers.md#configure-the-kubernetes-controller-manager\n${NC}"
                         exit 1
                 fi
             else
-                printf "${FAILED}kube-controller-manager.crt / kube-controller-manager.key is missing. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/08-bootstrapping-kubernetes-controllers.md#configure-the-kubernetes-controller-manager\n"
+                printf "${FAILED}kube-controller-manager.crt / kube-controller-manager.key is missing. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/08-bootstrapping-kubernetes-controllers.md#configure-the-kubernetes-controller-manager\n${NC}"
                 exit 1
     fi
 }
 
 check_systemd_ks()
 {
-    KSCERT=/var/lib/kubernetes/kube-scheduler.crt
-    KSKEY=/var/lib/kubernetes/kube-scheduler.key
+    KSCERT=/var/lib/kubernetes/pki/kube-scheduler.crt
+    KSKEY=/var/lib/kubernetes/pki/kube-scheduler.key
     KSKUBECONFIG=/var/lib/kubernetes/kube-scheduler.kubeconfig
 
     if [ -z $KSCERT ] && [ -z $KSKEY ]
@@ -390,217 +406,154 @@ check_systemd_ks()
             exit 1
         elif [ -f $SYSTEMD_KS_FILE ]
             then
-                printf "${NC}Systemd for kube-scheduler service found, verifying the authenticity\n"
+                printf "Systemd for kube-scheduler service found, verifying the authenticity\n"
 
                 KUBECONFIG=$(systemctl cat kube-scheduler.service | grep "\--kubeconfig"| awk '{print $1}'| cut -d "=" -f2)
-                ADDRESS=$(systemctl cat kube-scheduler.service | grep "\--address"| awk '{print $1}'| cut -d "=" -f2)
 
-                if [ $KUBECONFIG == $KSKUBECONFIG ] && [ $ADDRESS == "127.0.0.1" ]
+                if [ $KUBECONFIG == $KSKUBECONFIG ]
                     then
-                        printf "${SUCCESS}kube-scheduler --kubeconfig, --address are correct\n"
+                        printf "${SUCCESS}kube-scheduler --kubeconfig is correct\n${NC}"
                     else
-                        printf "${FAILED}Exiting...Found mismtach in the kube-scheduler --kubeconfig, --address, More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/08-bootstrapping-kubernetes-controllers.md#configure-the-kubernetes-scheduler\n"
+                        printf "${FAILED}Exiting...Found mismtach in the kube-scheduler --kubeconfig. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/08-bootstrapping-kubernetes-controllers.md#configure-the-kubernetes-scheduler\n${NC}"
                         exit 1
                 fi
             else
-                printf "${FAILED}kube-scheduler.crt / kube-scheduler.key is missing. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/08-bootstrapping-kubernetes-controllers.md#configure-the-kubernetes-scheduler\n"
+                printf "${FAILED}kube-scheduler.crt / kube-scheduler.key is missing. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/08-bootstrapping-kubernetes-controllers.md#configure-the-kubernetes-scheduler\n${NC}"
                 exit 1
     fi
 }
 
 # END OF Function - Master node #
 
-# Function - Worker-1 node #
 
-check_cert_worker_1()
-{
-    if [ -z $WORKER_1_CERT ] && [ -z $WORKER_1_KEY ]
-        then
-            printf "${FAILED}please specify cert and key location of worker-1 node\n${NC}"
-            exit 1
-        elif [ -f $WORKER_1_CERT ] && [ -f $WORKER_1_KEY ]
-            then
-                printf "${NC}worker-1 cert and key found, verifying the authenticity\n"
-                WORKER_1_CERT_SUBJECT=$(sudo openssl x509 -in $WORKER_1_CERT -text | grep "Subject: CN"| tr -d " ")
-                WORKER_1_CERT_ISSUER=$(sudo openssl x509 -in $WORKER_1_CERT -text | grep "Issuer: CN"| tr -d " ")
-                WORKER_1_CERT_MD5=$(sudo openssl x509 -noout -modulus -in $WORKER_1_CERT | openssl md5| awk '{print $2}')
-                WORKER_1_KEY_MD5=$(sudo openssl rsa -noout -modulus -in $WORKER_1_KEY | openssl md5| awk '{print $2}')
-                if [ $WORKER_1_CERT_SUBJECT == "Subject:CN=system:node:worker-1,O=system:nodes" ] && [ $WORKER_1_CERT_ISSUER == "Issuer:CN=KUBERNETES-CA,O=Kubernetes" ] && [ $WORKER_1_CERT_MD5 == $WORKER_1_KEY_MD5 ]
-                    then
-                        printf "${SUCCESS}worker-1 cert and key are correct\n"
-                    else
-                        printf "${FAILED}Exiting...Found mismtach in the worker-1 certificate and keys, More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/09-bootstrapping-kubernetes-workers.md#provisioning--kubelet-client-certificates\n"
-                        exit 1
-                fi
-            else
-                printf "${FAILED}/var/lib/kubelet/worker-1.crt / /var/lib/kubelet/worker-1.key is missing. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/09-bootstrapping-kubernetes-workers.md#provisioning--kubelet-client-certificates\n"
-                exit 1
-    fi
-}
-
-check_cert_worker_1_kubeconfig()
-{
-    if [ -z $WORKER_1_KUBECONFIG ]
-        then
-            printf "${FAILED}please specify worker-1 kubeconfig location\n${NC}"
-            exit 1
-        elif [ -f $WORKER_1_KUBECONFIG ]
-            then
-                printf "${NC}worker-1 kubeconfig file found, verifying the authenticity\n"
-                WORKER_1_KUBECONFIG_SUBJECT=$(cat $WORKER_1_KUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | sudo openssl x509 -text | grep "Subject: CN" | tr -d " ")
-                WORKER_1_KUBECONFIG_ISSUER=$(cat $WORKER_1_KUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | sudo openssl x509 -text | grep "Issuer: CN" | tr -d " ")
-                WORKER_1_KUBECONFIG_CERT_MD5=$(cat $WORKER_1_KUBECONFIG | grep "client-certificate-data:" | awk '{print $2}' | base64 --decode | sudo openssl x509 -noout | openssl md5 | awk '{print $2}')
-                WORKER_1_KUBECONFIG_KEY_MD5=$(cat $WORKER_1_KUBECONFIG | grep "client-key-data" | awk '{print $2}' | base64 --decode | openssl rsa -noout | openssl md5 | awk '{print $2}')
-                WORKER_1_KUBECONFIG_SERVER=$(cat $WORKER_1_KUBECONFIG | grep "server:"| awk '{print $2}')
-                if [ $WORKER_1_KUBECONFIG_SUBJECT == "Subject:CN=system:node:worker-1,O=system:nodes" ] && [ $WORKER_1_KUBECONFIG_ISSUER == "Issuer:CN=KUBERNETES-CA,O=Kubernetes" ] && \
-                   [ $WORKER_1_KUBECONFIG_CERT_MD5 == $WORKER_1_KUBECONFIG_KEY_MD5 ] && [ $WORKER_1_KUBECONFIG_SERVER == "https://192.168.56.30:6443" ]
-                    then
-                        printf "${SUCCESS}worker-1 kubeconfig cert and key are correct\n"
-                    else
-                        printf "${FAILED}Exiting...Found mismtach in the worker-1 kubeconfig certificate and keys, More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/09-bootstrapping-kubernetes-workers.md#the-kubelet-kubernetes-configuration-file\n"
-                        exit 1
-                fi
-            else
-                printf "${FAILED}worker-1 /var/lib/kubelet/kubeconfig file is missing. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/09-bootstrapping-kubernetes-workers.md#the-kubelet-kubernetes-configuration-file\n"
-                exit 1
-    fi
-}
-
-check_cert_worker_1_kubelet()
-{
-
-    CACERT=/var/lib/kubernetes/ca.crt
-    WORKER_1_TLSCERTFILE=/var/lib/kubelet/${HOSTNAME}.crt
-    WORKER_1_TLSPRIVATEKEY=/var/lib/kubelet/${HOSTNAME}.key
-
-    if [ -z $WORKER_1_KUBELET ] && [ -z $SYSTEMD_WORKER_1_KUBELET ]
-        then
-            printf "${FAILED}please specify worker-1 kubelet config location\n${NC}"
-            exit 1
-        elif [ -f $WORKER_1_KUBELET ] && [ -f $SYSTEMD_WORKER_1_KUBELET ] && [ -f $WORKER_1_TLSCERTFILE ] && [ -f $WORKER_1_TLSPRIVATEKEY ]
-            then
-                printf "${NC}worker-1 kubelet config file, systemd services, tls cert and key found, verifying the authenticity\n"
-
-                WORKER_1_KUBELET_CA=$(cat $WORKER_1_KUBELET | grep "clientCAFile:" | awk '{print $2}' | tr -d " \"")
-                WORKER_1_KUBELET_DNS=$(cat $WORKER_1_KUBELET | grep "resolvConf:" | awk '{print $2}' | tr -d " \"")
-                WORKER_1_KUBELET_AUTH_MODE=$(cat $WORKER_1_KUBELET | grep "mode:" | awk '{print $2}' | tr -d " \"")
-
-                if [ $WORKER_1_KUBELET_CA == $CACERT ] && [ $WORKER_1_KUBELET_DNS == "/run/systemd/resolve/resolv.conf" ] && \
-                   [ $WORKER_1_KUBELET_AUTH_MODE == "Webhook" ]
-                    then
-                        printf "${SUCCESS}worker-1 kubelet config CA cert, resolvConf and Auth mode are correct\n"
-                    else
-                        printf "${FAILED}Exiting...Found mismtach in the worker-1 kubelet config CA cert, resolvConf and Auth mode, More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/09-bootstrapping-kubernetes-workers.md#configure-the-kubelet\n"
-                        exit 1
-                fi
-
-                KUBELETCONFIG=$(systemctl cat kubelet.service | grep "\--config" | awk '{print $1}'| cut -d "=" -f2)
-                TLSCERTFILE=$(systemctl cat kubelet.service | grep "\--tls-cert-file" | awk '{print $1}'| cut -d "=" -f2)
-                TLSPRIVATEKEY=$(systemctl cat kubelet.service | grep "\--tls-private-key-file" | awk '{print $1}'| cut -d "=" -f2)
-
-                if [ $KUBELETCONFIG == $WORKER_1_KUBELET ] && [ $TLSCERTFILE == $WORKER_1_TLSCERTFILE ] && \
-                   [ $TLSPRIVATEKEY == $WORKER_1_TLSPRIVATEKEY ]
-                    then
-                        printf "${SUCCESS}worker-1 kubelet systemd services are correct\n"
-                    else
-                        printf "${FAILED}Exiting...Found mismtach in the worker-1 kubelet systemd services, More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/09-bootstrapping-kubernetes-workers.md#configure-the-kubelet\n${NC}"
-                        exit 1
-                fi
-
-            else
-                printf "${FAILED}worker-1 kubelet config, systemd services, tls cert and key file is missing. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/09-bootstrapping-kubernetes-workers.md\n${NC}"
-                exit 1
-    fi
-}
-
-check_cert_worker_1_kp()
-{
-
-    WORKER_1_KP_CONFIG_YAML=/var/lib/kube-proxy/kube-proxy-config.yaml
-
-    if [ -z $WORKER_1_KP_KUBECONFIG ] && [ -z $SYSTEMD_WORKER_1_KP ]
-        then
-            printf "${FAILED}please specify worker-1 kube-proxy config and systemd service path\n"
-            exit 1
-        elif [ -f $WORKER_1_KP_KUBECONFIG ] && [ -f $SYSTEMD_WORKER_1_KP ] && [ -f $WORKER_1_KP_CONFIG_YAML ]
-            then
-                printf "${NC}worker-1 kube-proxy kubeconfig, systemd services and configuration files found, verifying the authenticity\n"
-
-                KP_CONFIG=$(cat $WORKER_1_KP_CONFIG_YAML | grep "kubeconfig:" | awk '{print $2}' | tr -d " \"")
-                KP_CONFIG_YAML=$(systemctl cat kube-proxy.service | grep "\--config" | awk '{print $1}'| cut -d "=" -f2)
-
-                if [ $KP_CONFIG == $WORKER_1_KP_KUBECONFIG ] && [ $KP_CONFIG_YAML == $WORKER_1_KP_CONFIG_YAML ]
-                    then
-                        printf "${SUCCESS}worker-1 kube-proxy kubeconfig and configuration files are correct\n"
-                    else
-                        printf "${FAILED}Exiting...Found mismtach in the worker-1 kube-proxy kubeconfig and configuration files, More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/09-bootstrapping-kubernetes-workers.md#configure-the-kubernetes-proxy\n"
-                        exit 1
-                fi
-
-            else
-                printf "${FAILED}worker-1 kube-proxy kubeconfig and configuration files are missing. More details: https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/09-bootstrapping-kubernetes-workers.md#configure-the-kubernetes-proxy\n${NC}"
-                exit 1
-    fi
-}
-
-# END OF Function - Worker-1 node #
-
-echo -e "This script will validate the certificates in master as well as worker-1 nodes. Before proceeding, make sure you ssh into the respective node [ Master or Worker-1 ] for certificate validation\n"
-echo -e "1. Verify certification in Master Node\n"
-echo -e "2. Verify certification in Worker-1 Node\n"
-echo -e "Please select either the option 1 or 2\n"
+echo "This script will validate the certificates in master as well as worker-1 nodes. Before proceeding, make sure you ssh into the respective node [ Master or Worker-1 ] for certificate validation"
+echo
+echo "  1. Verify certificates on Master Nodes after step 4"
+echo "  2. Verify kubeconfigs on Master Nodes after step 5"
+echo "  3. Verify kubeconfigs and PKI on Master Nodes after step 8"
+echo "  4. Verify kubeconfigs and PKI on worker-1 Node after step 10"
+echo "  5. Verify kubeconfigs and PKI on worker-2 Node after step 11"
+echo
+echo -n "Please select one of the above options: "
 read value
+
+HOST=$(hostname -s)
+
+CERT_ISSUER="Issuer:CN=KUBERNETES-CA,O=Kubernetes"
+SUBJ_CA="Subject:CN=KUBERNETES-CA,O=Kubernetes"
+SUBJ_ADMIN="Subject:CN=admin,O=system:masters"
+SUBJ_KCM="Subject:CN=system:kube-controller-manager,O=system:kube-controller-manager"
+SUBJ_KP="Subject:CN=system:kube-proxy,O=system:node-proxier"
+SUBJ_KS="Subject:CN=system:kube-scheduler,O=system:kube-scheduler"
+SUBJ_API="Subject:CN=kube-apiserver,O=Kubernetes"
+SUBJ_SA="Subject:CN=service-accounts,O=Kubernetes"
+SUBJ_ETCD="Subject:CN=etcd-server,O=Kubernetes"
+SUBJ_APIKC="Subject:CN=kube-apiserver-kubelet-client,O=system:masters"
 
 case $value in
 
   1)
-    echo -e "The selected option is $value, proceeding the certificate verification of Master node"
-    issuer="Issuer:CN=KUBERNETES-CA,O=Kubernetes"
-
-    ### MASTER NODES ###
-    master_hostname=$(hostname -s)
-    # CRT & KEY verification
-    check_cert ca 'Subject:CN=KUBERNETES-CA,O=Kubernetes' $issuer
-
-    if [ $master_hostname == "master-1" ]
-      then
-        check_cert "admin" "Subject:CN=admin,O=system:masters" $issuer
-        check_cert "kube-controller-manager" "Subject:CN=system:kube-controller-manager,O=system:kube-controller-manager" $issuer
-        check_cert "kube-proxy" "Subject:CN=system:kube-proxy,O=system:node-proxier" $issuer
-        check_cert "kube-scheduler" "Subject:CN=system:kube-scheduler,O=system:kube-scheduler" $issuer
-        #check_cert_adminkubeconfig
-        #check_cert_kpkubeconfig
+    if ! [ "${HOST}" = "master-1" -o "${HOST}" = "master-2" ]
+    then
+        printf "${FAILED}Must run on master-1 or master-2${NC}\n"
+        exit 1
     fi
-    check_cert "kube-apiserver" "Subject:CN=kube-apiserver,O=Kubernetes" $issuer
-    check_cert "service-account" "Subject:CN=service-accounts,O=Kubernetes" $issuer
-    check_cert "etcd-server" "Subject:CN=etcd-server,O=Kubernetes" $issuer
 
-    # Kubeconfig verification
-    check_cert_kcmkubeconfig
-    check_cert_kskubeconfig
+    echo -e "The selected option is $value, proceeding the certificate verification of Master node"
 
-    # Systemd verification
-    check_systemd_etcd
-    check_systemd_api
-    check_systemd_kcm
-    check_systemd_ks
+    CERT_LOCATION=$HOME
+    check_cert_and_key "ca" $SUBJ_CA $CERT_ISSUER
+    check_cert_and_key "kube-apiserver" $SUBJ_API $CERT_ISSUER
+    check_cert_and_key "kube-controller-manager" $SUBJ_KCM $CERT_ISSUER
+    check_cert_and_key "kube-scheduler" $SUBJ_KS $CERT_ISSUER
+    check_cert_and_key "service-account" $SUBJ_SA $CERT_ISSUER
+    check_cert_and_key "apiserver-kubelet-client" $SUBJ_APIKC $CERT_ISSUER
+    check_cert_and_key "etcd-server" $SUBJ_ETCD $CERT_ISSUER
 
-    ### END OF MASTER NODES ###
-
+    if [ "${HOST}" = "master-1" ]
+    then
+        check_cert_and_key "admin" $SUBJ_ADMIN $CERT_ISSUER
+        check_cert_and_key "kube-proxy" $SUBJ_KP $CERT_ISSUER
+    fi
     ;;
 
   2)
-    echo -e "The selected option is $value, proceeding the certificate verification of Worker-1 node"
+    if ! [ "${HOST}" = "master-1" -o "${HOST}" = "master-2" ]
+    then
+        printf "${FAILED}Must run on master-1 or master-2${NC}\n"
+        exit 1
+    fi
 
-    ### WORKER-1 NODE ###
+    check_cert_adminkubeconfig
+    check_kubeconfig_exists "kube-controller-manager" $HOME
+    check_kubeconfig_exists "kube-scheduler" $HOME
 
-    check_cert_worker_1
-    check_cert_worker_1_kubeconfig
-    check_cert_worker_1_kubelet
-    check_cert_worker_1_kp
-
-    ### END OF WORKER-1 NODE ###
+    if [ "${HOST}" = "master-1" ]
+    then
+        check_kubeconfig_exists "kube-proxy" $HOME
+    fi
     ;;
+
+  3)
+    if ! [ "${HOST}" = "master-1" -o "${HOST}" = "master-2" ]
+    then
+        printf "${FAILED}Must run on master-1 or master-2${NC}\n"
+        exit 1
+    fi
+
+    CERT_LOCATION=/etc/etcd
+    check_cert_only "ca" $SUBJ_CA $CERT_ISSUER
+    check_cert_and_key "etcd-server" $SUBJ_ETCD $CERT_ISSUER
+
+    CERT_LOCATION=/var/lib/kubernetes/pki
+    check_cert_and_key "ca" $SUBJ_CA $CERT_ISSUER
+    check_cert_and_key "kube-apiserver" $SUBJ_API $CERT_ISSUER
+    check_cert_and_key "kube-controller-manager" $SUBJ_KCM $CERT_ISSUER
+    check_cert_and_key "kube-scheduler" $SUBJ_KS $CERT_ISSUER
+    check_cert_and_key "service-account" $SUBJ_SA $CERT_ISSUER
+    check_cert_and_key "apiserver-kubelet-client" $SUBJ_APIKC $CERT_ISSUER
+    check_cert_and_key "etcd-server" $SUBJ_ETCD $CERT_ISSUER
+
+    check_kubeconfig "kube-controller-manager" "/var/lib/kubernetes" "https://127.0.0.1:6443"
+    check_kubeconfig "kube-scheduler" "/var/lib/kubernetes" "https://127.0.0.1:6443"
+
+    check_systemd_api
+    check_systemd_etcd
+    check_systemd_kcm
+    check_systemd_ks
+    ;;
+
+  4)
+    if ! [ "${HOST}" = "worker-1" ]
+    then
+        printf "${FAILED}Must run on worker-1${NC}\n"
+        exit 1
+    fi
+
+    CERT_LOCATION=/var/lib/kubernetes/pki
+    check_cert_only "ca" $SUBJ_CA $CERT_ISSUER
+    check_cert_and_key "kube-proxy" $SUBJ_KP $CERT_ISSUER
+    check_cert_and_key "worker-1" "Subject:CN=system:node:worker-1,O=system:nodes" $CERT_ISSUER
+    check_kubeconfig "kube-proxy" "/var/lib/kube-proxy" "https://${LOADBALANCER}:6443"
+    check_kubeconfig "kubelet" "/var/lib/kubelet" "https://${LOADBALANCER}:6443"
+    ;;
+
+  5)
+    if ! [ "${HOST}" = "worker-2" ]
+    then
+        printf "${FAILED}Must run on worker-2${NC}\n"
+        exit 1
+    fi
+
+    CERT_LOCATION=/var/lib/kubernetes/pki
+    check_cert_only "ca" $SUBJ_CA $CERT_ISSUER
+    check_cert_and_key "kube-proxy" $SUBJ_KP $CERT_ISSUER
+
+    CERT_LOCATION=/var/lib/kubelet/pki
+    check_cert_only "kubelet-client-current" "Subject:O=system:nodes,CN=system:node:worker-2" $CERT_ISSUER
+    check_kubeconfig "kube-proxy" "/var/lib/kube-proxy" "https://${LOADBALANCER}:6443"
+    ;;
+
 
   *)
     printf "${FAILED}Exiting.... Please select the valid option either 1 or 2\n${NC}"

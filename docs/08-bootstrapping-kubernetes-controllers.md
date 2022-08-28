@@ -24,7 +24,7 @@ wget -q --show-progress --https-only --timestamping \
   "https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubectl"
 ```
 
-Reference: https://kubernetes.io/docs/setup/release/#server-binaries
+Reference: https://kubernetes.io/releases/download/#binaries
 
 Install the Kubernetes binaries:
 
@@ -203,6 +203,16 @@ EOF
 ```bash
 sudo chmod 600 /var/lib/kubernetes/*.kubeconfig
 ```
+
+## Optional - Check Certificates and kubeconfigs
+
+At `master-1` and `master-2` nodes, run the following, selecting option 3
+
+```bash
+./cert_verify.sh
+```
+
+
 ### Start the Controller Services
 
 ```bash

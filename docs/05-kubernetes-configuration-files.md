@@ -172,5 +172,14 @@ for instance in master-1 master-2; do
 done
 ```
 
+## Optional - Check kubeconfigs
+
+At `master-1` and `master-2` nodes, run the following, selecting option 2
+
+```bash
+./cert_verify.sh
+```
+
+
 Prev: [Certificate Authority](04-certificate-authority.md)<br>
 Next: [Generating the Data Encryption Config and Key](06-data-encryption-keys.md)

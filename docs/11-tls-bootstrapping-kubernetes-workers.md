@@ -18,7 +18,7 @@ This is not a practical approach when you have 1000s of nodes in the cluster, an
 
 In Kubernetes 1.11 a patch was merged to require administrator or Controller approval of node serving CSRs for security reasons.
 
-Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/#certificate-rotation
+Reference: https://kubernetes.io/docs/reference/access-authn-authz/kubelet-tls-bootstrapping/#certificate-rotation
 
 So let's get started!
 
@@ -137,7 +137,7 @@ EOF
 kubectl create -f csrs-for-bootstrapping.yaml --kubeconfig admin.kubeconfig
 
 ```
-Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/#authorize-kubelet-to-create-csr
+Reference: https://kubernetes.io/docs/reference/access-authn-authz/kubelet-tls-bootstrapping/#authorize-kubelet-to-create-csr
 
 ## Step 3 Authorize workers(kubelets) to approve CSRs
 
@@ -194,7 +194,7 @@ kubectl create -f auto-approve-renewals-for-nodes.yaml --kubeconfig admin.kubeco
 
 
 
-Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/#approval
+Reference: https://kubernetes.io/docs/reference/access-authn-authz/kubelet-tls-bootstrapping/#approval
 
 ## Step 4 Authorize workers(kubelets) to Auto Renew Certificates on expiration
 
@@ -230,7 +230,7 @@ EOF
 kubectl create -f auto-approve-renewals-for-nodes.yaml --kubeconfig admin.kubeconfig
 ```
 
-Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/#approval
+Reference: https://kubernetes.io/docs/reference/access-authn-authz/kubelet-tls-bootstrapping/#approval
 
 ## Step 5 Configure the Binaries on the Worker node
 
@@ -246,7 +246,7 @@ wget -q --show-progress --https-only --timestamping \
   https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubelet
 ```
 
-Reference: https://kubernetes.io/docs/setup/release/#node-binaries
+Reference: https://kubernetes.io/releases/download/#binaries
 
 Create the installation directories:
 
@@ -326,7 +326,7 @@ users:
 EOF
 ```
 
-Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/#kubelet-configuration
+Reference: https://kubernetes.io/docs/reference/access-authn-authz/kubelet-tls-bootstrapping/#kubelet-configuration
 
 ## Step 7 Create Kubelet Config File
 
@@ -396,9 +396,9 @@ Things to note here:
 In one of the previous steps we created the kube-proxy.kubeconfig file. Check [here](https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/05-kubernetes-configuration-files.md) if you missed it.
 
 ```bash
-sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
-sudo chown root:root /var/lib/kube-proxy/kubeconfig
-sudo chmod 600 /var/lib/kube-proxy/kubeconfig
+sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/
+sudo chown root:root /var/lib/kube-proxy/kube-proxy.kubeconfig
+sudo chmod 600 /var/lib/kube-proxy/kube-proxy.kubeconfig
 ```
 
 Create the `kube-proxy-config.yaml` configuration file:
@@ -408,7 +408,7 @@ cat <<EOF | sudo tee /var/lib/kube-proxy/kube-proxy-config.yaml
 kind: KubeProxyConfiguration
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 clientConnection:
-  kubeconfig: /var/lib/kube-proxy/kubeconfig
+  kubeconfig: /var/lib/kube-proxy/kube-proxy.kubeconfig
 mode: iptables
 clusterCIDR: ${POD_CIDR}
 EOF
@@ -432,6 +432,15 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 ```
+
+## Optional - Check Certificates and kubeconfigs
+
+At `worker-2` node, run the following, selecting option 5
+
+```bash
+./cert_verify.sh
+```
+
 
 ## Step 10 Start the Worker Services
 
@@ -472,7 +481,7 @@ kubectl certificate approve csr-7s92j --kubeconfig admin.kubeconfig
 
 Note: In the event your cluster persists for longer than 365 days, you will need to manually approve the replacement CSR.
 
-Reference: https://kubernetes.io/docs/reference/command-line-tools-reference/kubelet-tls-bootstrapping/#kubectl-approval
+Reference: https://kubernetes.io/docs/reference/access-authn-authz/kubelet-tls-bootstrapping/#kubectl-approval
 
 ## Verification
 

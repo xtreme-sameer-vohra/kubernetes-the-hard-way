@@ -10,7 +10,7 @@
 Download and Install [VirtualBox](https://www.virtualbox.org/wiki/Downloads) on any one of the supported platforms:
 
  - Windows hosts
- - OS X hosts
+ - OS X hosts (x86 only, not M1)
  - Linux distributions
  - Solaris hosts
 

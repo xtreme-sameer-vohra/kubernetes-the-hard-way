@@ -1,6 +1,6 @@
 # Bootstrapping the etcd Cluster
 
-Kubernetes components are stateless and store cluster state in [etcd](https://github.com/coreos/etcd). In this lab you will bootstrap a two node etcd cluster and configure it for high availability and secure remote access.
+Kubernetes components are stateless and store cluster state in [etcd](https://etcd.io/). In this lab you will bootstrap a two node etcd cluster and configure it for high availability and secure remote access.
 
 ## Prerequisites
 
@@ -14,7 +14,7 @@ The commands in this lab must be run on each controller instance: `master-1`, an
 
 ### Download and Install the etcd Binaries
 
-Download the official etcd release binaries from the [coreos/etcd](https://github.com/coreos/etcd) GitHub project:
+Download the official etcd release binaries from the [etcd](https://github.com/etcd-io/etcd) GitHub project:
 
 ```bash
 wget -q --show-progress --https-only --timestamping \

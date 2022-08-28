@@ -106,7 +106,7 @@ wget -q --show-progress --https-only --timestamping \
   https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubelet \
 ```
 
-Reference: https://kubernetes.io/docs/setup/release/#node-binaries
+Reference: https://kubernetes.io/releases/download/#binaries
 
 Create the installation directories:
 
@@ -135,7 +135,7 @@ Copy keys and config to correct directories and secure
 ```bash
 {
   sudo mv ${HOSTNAME}.key ${HOSTNAME}.crt /var/lib/kubernetes/pki/
-  sudo mv ${HOSTNAME}.kubeconfig /var/lib/kubelet/kubeconfig
+  sudo mv ${HOSTNAME}.kubeconfig /var/lib/kubelet/kubelet.kubeconfig
   sudo mv ca.crt /var/lib/kubernetes/pki/
   sudo mv kube-proxy.crt kube-proxy.key /var/lib/kubernetes/pki/
   sudo chown root:root /var/lib/kubernetes/pki/*
@@ -200,7 +200,7 @@ Requires=containerd.service
 ExecStart=/usr/local/bin/kubelet \\
   --config=/var/lib/kubelet/kubelet-config.yaml \\
   --container-runtime-endpoint=unix:///var/run/containerd/containerd.sock \\
-  --kubeconfig=/var/lib/kubelet/kubeconfig \\
+  --kubeconfig=/var/lib/kubelet/kubelet.kubeconfig \\
   --v=2
 Restart=on-failure
 RestartSec=5
@@ -214,7 +214,7 @@ EOF
 On worker-1:
 
 ```bash
-sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/kubeconfig
+sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/
 ```
 
 Create the `kube-proxy-config.yaml` configuration file:
@@ -224,7 +224,7 @@ cat <<EOF | sudo tee /var/lib/kube-proxy/kube-proxy-config.yaml
 kind: KubeProxyConfiguration
 apiVersion: kubeproxy.config.k8s.io/v1alpha1
 clientConnection:
-  kubeconfig: "/var/lib/kube-proxy/kubeconfig"
+  kubeconfig: "/var/lib/kube-proxy/kube-proxy.kubeconfig"
 mode: "iptables"
 clusterCIDR: ${POD_CIDR}
 EOF
@@ -248,6 +248,15 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 ```
+
+## Optional - Check Certificates and kubeconfigs
+
+At `worker-1` node, run the following, selecting option 4
+
+```bash
+./cert_verify.sh
+```
+
 
 ### Start the Worker Services
 On worker-1:
