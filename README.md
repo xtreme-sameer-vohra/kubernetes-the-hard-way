@@ -22,8 +22,8 @@ The target audience for this tutorial is someone planning to support a productio
 Kubernetes The Hard Way guides you through bootstrapping a highly available Kubernetes cluster with end-to-end encryption between components and RBAC authentication.
 
 * [Kubernetes](https://github.com/kubernetes/kubernetes) 1.24.3
-* [Container Runtime](https://github.com/containerd/containerd) 1.6.6
-* [CNI Container Networking](https://github.com/containernetworking/cni) 1.6.6
+* [Container Runtime](https://github.com/containerd/containerd) 1.5.9
+* [CNI Container Networking](https://github.com/containernetworking/cni) 0.8.6
 * [Weave Networking](https://www.weave.works/docs/net/latest/kubernetes/kube-addon/)
 * [etcd](https://github.com/coreos/etcd) v3.5.3
 * [CoreDNS](https://github.com/coredns/coredns) v1.8.6
@@ -38,12 +38,13 @@ Kubernetes The Hard Way guides you through bootstrapping a highly available Kube
 * [Generating the Data Encryption Config and Key](docs/06-data-encryption-keys.md)
 * [Bootstrapping the etcd Cluster](docs/07-bootstrapping-etcd.md)
 * [Bootstrapping the Kubernetes Control Plane](docs/08-bootstrapping-kubernetes-controllers.md)
-* [Bootstrapping the Kubernetes Worker Nodes](docs/09-bootstrapping-kubernetes-workers.md)
-* [TLS Bootstrapping the Kubernetes Worker Nodes](docs/10-tls-bootstrapping-kubernetes-workers.md)
-* [Configuring kubectl for Remote Access](docs/11-configuring-kubectl.md)
-* [Deploy Weave - Pod Networking Solution](docs/12-configure-pod-networking.md)
-* [Kube API Server to Kubelet Configuration](docs/13-kube-apiserver-to-kubelet.md)
-* [Deploying the DNS Cluster Add-on](docs/14-dns-addon.md)
-* [Smoke Test](docs/15-smoke-test.md)
-* [E2E Test](docs/16-e2e-tests.md)
+* [Installing CNI on Worker Nodes](docs/09-install-cni-workers.md)
+* [Bootstrapping the Kubernetes Worker Nodes](docs/10-bootstrapping-kubernetes-workers.md)
+* [TLS Bootstrapping the Kubernetes Worker Nodes](docs/11-tls-bootstrapping-kubernetes-workers.md)
+* [Configuring kubectl for Remote Access](docs/12-configuring-kubectl.md)
+* [Deploy Weave - Pod Networking Solution](docs/13-configure-pod-networking.md)
+* [Kube API Server to Kubelet Configuration](docs/14-kube-apiserver-to-kubelet.md)
+* [Deploying the DNS Cluster Add-on](docs/15-dns-addon.md)
+* [Smoke Test](docs/16-smoke-test.md)
+* [E2E Test](docs/17-e2e-tests.md)
 * [Extra - Certificate Verification](docs/verify-certificates.md)
