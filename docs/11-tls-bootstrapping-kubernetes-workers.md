@@ -172,27 +172,8 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
 EOF
 
-cat > auto-approve-renewals-for-nodes.yaml <<EOF
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: auto-approve-renewals-for-nodes
-subjects:
-- kind: Group
-  name: system:nodes
-  apiGroup: rbac.authorization.k8s.io
-roleRef:
-  kind: ClusterRole
-  name: system:certificates.k8s.io:certificatesigningrequests:selfnodeclient
-  apiGroup: rbac.authorization.k8s.io
-EOF
-
 kubectl create -f auto-approve-csrs-for-group.yaml --kubeconfig admin.kubeconfig
-kubectl create -f auto-approve-renewals-for-nodes.yaml --kubeconfig admin.kubeconfig
 ```
-
-
-
 
 Reference: https://kubernetes.io/docs/reference/access-authn-authz/kubelet-tls-bootstrapping/#approval
 
