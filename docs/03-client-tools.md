@@ -6,6 +6,8 @@ If you are on a Linux laptop, then your laptop could be this system. In my case 
 
 ## Access all VMs
 
+Here we create an SSH key pair for the `vagrant` user who we are logged in as. We will copy the public key of this pair to the other master and both workers to permit us to use password-less SSH (and SCP) go get from `master-1` to these other nodes in the context of the `vagrant` user which exists on all nodes.
+
 Generate Key Pair on `master-1` node
 
 ```bash
