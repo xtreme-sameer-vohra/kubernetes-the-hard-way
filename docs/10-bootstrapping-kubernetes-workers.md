@@ -1,6 +1,6 @@
 # Bootstrapping the Kubernetes Worker Nodes
 
-In this lab you will bootstrap 2 Kubernetes worker nodes. We already have [Docker](https://www.docker.com) installed on these nodes.
+In this lab you will bootstrap 2 Kubernetes worker nodes. We already installed `containerd` and its dependencies on these nodes in the previous lab.
 
 We will now install the kubernetes components
 - [kubelet](https://kubernetes.io/docs/admin/kubelet)
