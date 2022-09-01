@@ -17,7 +17,7 @@ Kubernetes uses a [special-purpose authorization mode](https://kubernetes.io/doc
 
 Generate a certificate and private key for one worker node:
 
-On master-1:
+On `master-1`:
 
 ```bash
 WORKER_1=$(dig +short worker-1)
@@ -61,7 +61,7 @@ LOADBALANCER=$(dig +short loadbalancer)
 
 Generate a kubeconfig file for the first worker node.
 
-On master-1:
+On `master-1`:
 ```bash
 {
   kubectl config set-cluster kubernetes-the-hard-way \
@@ -90,7 +90,7 @@ worker-1.kubeconfig
 ```
 
 ### Copy certificates, private keys and kubeconfig files to the worker node:
-On master-1:
+On `master-1`:
 ```
 scp ca.crt worker-1.crt worker-1.key worker-1.kubeconfig worker-1:~/
 ```
@@ -98,6 +98,7 @@ scp ca.crt worker-1.crt worker-1.key worker-1.kubeconfig worker-1:~/
 
 ### Download and Install Worker Binaries
 
+All the following commands from here until the [verification](#verification) step must be run on `worker-1`
 
 ```bash
 wget -q --show-progress --https-only --timestamping \
@@ -271,7 +272,8 @@ On worker-1:
 > Remember to run the above commands on worker node: `worker-1`
 
 ## Verification
-On master-1:
+
+Now return to the `master-1` node.
 
 List the registered Kubernetes nodes from the master node:
 
