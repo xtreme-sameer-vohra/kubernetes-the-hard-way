@@ -235,7 +235,7 @@ sudo mkdir -p \
 
 Install the worker binaries:
 
-```
+```bash
 {
   chmod +x kubectl kube-proxy kubelet
   sudo mv kubectl kube-proxy kubelet /usr/local/bin/
@@ -244,9 +244,11 @@ Install the worker binaries:
 Move the certificates and secure them.
 
 ```bash
-sudo mv ca.crt kube-proxy.crt kube-proxy.key /var/lib/kubernetes/pki
-sudo chown root:root /var/lib/kubernetes/pki/*
-sudo chmod 600 /var/lib/kubernetes/pki/*
+{
+  sudo mv ca.crt kube-proxy.crt kube-proxy.key /var/lib/kubernetes/pki
+  sudo chown root:root /var/lib/kubernetes/pki/*
+  sudo chmod 600 /var/lib/kubernetes/pki/*
+}
 ```
 
 ## Step 6 Configure Kubelet to TLS Bootstrap
@@ -270,10 +272,12 @@ CLUSTER_DNS=$(echo $SERVICE_CIDR | awk 'BEGIN {FS="."} ; { printf("%s.%s.%s.10",
 Set up the bootstrap kubeconfig.
 
 ```bash
-sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig set-cluster bootstrap --server='https://${LOADBALANCER}:6443' --certificate-authority=/var/lib/kubernetes/pki/ca.crt
-sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig set-credentials kubelet-bootstrap --token=07401b.f395accd246ae52d
-sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig set-context bootstrap --user=kubelet-bootstrap --cluster=bootstrap
-sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig use-context bootstrap
+{
+  sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig set-cluster bootstrap --server='https://${LOADBALANCER}:6443' --certificate-authority=/var/lib/kubernetes/pki/ca.crt
+  sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig set-credentials kubelet-bootstrap --token=07401b.f395accd246ae52d
+  sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig set-context bootstrap --user=kubelet-bootstrap --cluster=bootstrap
+  sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig use-context bootstrap
+}
 ```
 
 --------------- OR ---------------
@@ -371,9 +375,11 @@ Things to note here:
 In one of the previous steps we created the kube-proxy.kubeconfig file. Check [here](https://github.com/mmumshad/kubernetes-the-hard-way/blob/master/docs/05-kubernetes-configuration-files.md) if you missed it.
 
 ```bash
-sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/
-sudo chown root:root /var/lib/kube-proxy/kube-proxy.kubeconfig
-sudo chmod 600 /var/lib/kube-proxy/kube-proxy.kubeconfig
+{
+  sudo mv kube-proxy.kubeconfig /var/lib/kube-proxy/
+  sudo chown root:root /var/lib/kube-proxy/kube-proxy.kubeconfig
+  sudo chmod 600 /var/lib/kube-proxy/kube-proxy.kubeconfig
+}
 ```
 
 Create the `kube-proxy-config.yaml` configuration file:
