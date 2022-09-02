@@ -41,12 +41,6 @@ So let's get started!
 
 > Note: We have already configured these in lab 8 in this course
 
-Copy the required certificates to the worker node:
-
-```bash
-scp ca.crt kube-proxy.crt kube-proxy.key worker-2:~/
-```
-
 # Step 1 Create the Boostrap Token to be used by Nodes(Kubelets) to invoke Certificate API
 
 Run the following steps on `master-1`
