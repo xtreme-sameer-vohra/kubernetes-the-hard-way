@@ -414,14 +414,6 @@ WantedBy=multi-user.target
 EOF
 ```
 
-## Optional - Check Certificates and kubeconfigs
-
-At `worker-2` node, run the following, selecting option 5
-
-```bash
-./cert_verify.sh
-```
-
 
 ## Step 10 Start the Worker Services
 
@@ -435,6 +427,14 @@ On worker-2:
 }
 ```
 > Remember to run the above commands on worker node: `worker-2`
+
+### Optional - Check Certificates and kubeconfigs
+
+At `worker-2` node, run the following, selecting option 5
+
+```bash
+./cert_verify.sh
+```
 
 
 ## Step 11 Approve Server CSR
