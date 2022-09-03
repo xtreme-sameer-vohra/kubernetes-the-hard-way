@@ -140,11 +140,6 @@ kubectl create clusterrolebinding auto-approve-csrs-for-group \
   --clusterrole=system:certificates.k8s.io:certificatesigningrequests:nodeclient \
   --group=system:bootstrappers \
   --kubeconfig admin.kubeconfig
-
-kubectl create clusterrolebinding auto-approve-renewals-for-nodes \
-  --clusterrole=system:certificates.k8s.io:certificatesigningrequests:selfnodeclient \
-  --group=system:nodes \
-  --kubeconfig admin.kubeconfig
 ```
 
  --------------- OR ---------------
