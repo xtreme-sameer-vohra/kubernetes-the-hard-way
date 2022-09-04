@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 #
-# Generate a set of scripts from the documentation by rading markdown comments to determine target hosts
+# Generate a set of scripts from the documentation by reading markdown comments to determine target hosts
 # and extracting all scripts fenced by ```bash
 #
 #
@@ -19,6 +19,7 @@ import codecs
 import argparse
 from enum import Enum
 from sys import exit
+
 class State(Enum):
     NONE = 0
     SCRIPT = 1
