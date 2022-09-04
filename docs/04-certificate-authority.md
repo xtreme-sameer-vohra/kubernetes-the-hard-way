@@ -8,6 +8,7 @@ You can do these on any machine with `openssl` on it. But you should be able to 
 
 In our case we do it on the master-1 node, as we have set it up to be the administrative client.
 
+[//]: # (host:master-1)
 
 ## Certificate Authority
 
@@ -335,7 +336,7 @@ service-account.crt
 Run the following, and select option 1 to check all required certificates were generated.
 
 ```bash
-bash ./cert_verify.sh
+./cert_verify.sh
 ```
 
 > Expected output

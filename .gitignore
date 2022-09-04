@@ -10,3 +10,4 @@ temp
 *csr.json
 *.kubeconfig
 quick-steps
+venv

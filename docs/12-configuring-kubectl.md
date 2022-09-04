@@ -8,8 +8,12 @@ In this lab you will generate a kubeconfig file for the `kubectl` command line u
 
 Each kubeconfig requires a Kubernetes API Server to connect to. To support high availability the IP address assigned to the external load balancer fronting the Kubernetes API Servers will be used.
 
+[//]: # (host:master-1)
+
+
 Get the kube-api server load-balancer IP.
-```
+
+```bash
 LOADBALANCER=$(dig +short loadbalancer)
 ```
 

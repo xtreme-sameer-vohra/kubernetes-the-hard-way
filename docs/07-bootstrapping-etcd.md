@@ -16,6 +16,9 @@ The commands in this lab must be run on each controller instance: `master-1`, an
 
 Download the official etcd release binaries from the [etcd](https://github.com/etcd-io/etcd) GitHub project:
 
+[//]: # (host:master-1-master2)
+
+
 ```bash
 wget -q --show-progress --https-only --timestamping \
   "https://github.com/coreos/etcd/releases/download/v3.5.3/etcd-v3.5.3-linux-amd64.tar.gz"
@@ -110,6 +113,8 @@ EOF
 > Remember to run the above commands on each controller node: `master-1`, and `master-2`.
 
 ## Verification
+
+[//]: # (sleep:5)
 
 List the etcd cluster members:
 

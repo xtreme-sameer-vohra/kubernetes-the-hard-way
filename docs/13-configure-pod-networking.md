@@ -7,6 +7,8 @@ We chose to use CNI - [weave](https://www.weave.works/docs/net/latest/kubernetes
 
 Deploy weave network. Run only once on the `master` node. You will see a warning, but this is OK.
 
+[//]: # (host:master-1)
+
 
 ```bash
 kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"
@@ -15,6 +17,8 @@ kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl versio
 Weave uses POD CIDR of `10.32.0.0/12` by default.
 
 ## Verification
+
+[//]: # (sleep:45)
 
 List the registered Kubernetes nodes from the master node:
 
@@ -30,7 +34,7 @@ weave-net-58j2j   2/2     Running   0          89s
 weave-net-rr5dk   2/2     Running   0          89s
 ```
 
-Once the Weave pods are fully running, the nodes should be ready
+Once the Weave pods are fully running which might take up to 60 seconds, the nodes should be ready
 
 ```bash
 kubectl get nodes

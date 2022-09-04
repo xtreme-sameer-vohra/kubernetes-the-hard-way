@@ -8,6 +8,8 @@ Reference: https://github.com/containerd/containerd/blob/main/docs/getting-start
 
 The commands in this lab must be run on each worker instance: `worker-1`, and `worker-2`. Login to each controller instance using SSH Terminal.
 
+[//]: # (host:worker-1-worker-2)
+
 You can perform this step with [tmux](01-prerequisites.md#running-commands-in-parallel-with-tmux)
 
 The versions chosen here align with those that are installed by the current `kubernetes-cni` package for a v1.24 cluster.

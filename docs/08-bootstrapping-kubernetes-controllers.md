@@ -12,6 +12,8 @@ You can perform this step with [tmux](01-prerequisites.md#running-commands-in-pa
 
 ## Provision the Kubernetes Control Plane
 
+[//]: # (host:master-1-master2)
+
 ### Download and Install the Kubernetes Controller Binaries
 
 Download the official Kubernetes release binaries:
@@ -45,7 +47,7 @@ Place the key pairs into the kubernetes data directory and secure
 
   # Only copy CA keys as we'll need them again for workers.
   sudo cp ca.crt ca.key /var/lib/kubernetes/pki
-  for c in kube-apiserver service-account apiserver-kubelet-client etcd-server kube-scheduler kube-controller-manager kube-proxy
+  for c in kube-apiserver service-account apiserver-kubelet-client etcd-server kube-scheduler kube-controller-manager
   do
     sudo mv "$c.crt" "$c.key" /var/lib/kubernetes/pki/
   done
@@ -228,6 +230,8 @@ At `master-1` and `master-2` nodes, run the following, selecting option 3
 
 ### Verification
 
+[//]: # (sleep:10)
+
 ```bash
 kubectl get componentstatuses --kubeconfig admin.kubeconfig
 ```
@@ -257,6 +261,9 @@ In this section you will provision an external load balancer to front the Kubern
 A NLB operates at [layer 4](https://en.wikipedia.org/wiki/OSI_model#Layer_4:_Transport_layer) (TCP) meaning it passes the traffic straight through to the back end servers unfettered and does not interfere with the TLS process, leaving this to the Kube API servers.
 
 Login to `loadbalancer` instance using SSH Terminal.
+
+[//]: # (host:loadbalancer)
+
 
 ```bash
 sudo apt-get update && sudo apt-get install -y haproxy
@@ -294,6 +301,8 @@ sudo systemctl restart haproxy
 ```
 
 ### Verification
+
+[//]: # (sleep:2)
 
 Make a HTTP request for the Kubernetes version info:
 

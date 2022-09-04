@@ -19,6 +19,8 @@ Generate a certificate and private key for one worker node:
 
 On `master-1`:
 
+[//]: # (host:master-1)
+
 ```bash
 WORKER_1=$(dig +short worker-1)
 ```
@@ -55,7 +57,8 @@ worker-1.crt
 When generating kubeconfig files for Kubelets the client certificate matching the Kubelet's node name must be used. This will ensure Kubelets are properly authorized by the Kubernetes [Node Authorizer](https://kubernetes.io/docs/admin/authorization/node/).
 
 Get the kub-api server load-balancer IP.
-```
+
+```bash
 LOADBALANCER=$(dig +short loadbalancer)
 ```
 
@@ -91,7 +94,8 @@ worker-1.kubeconfig
 
 ### Copy certificates, private keys and kubeconfig files to the worker node:
 On `master-1`:
-```
+
+```bash
 scp ca.crt worker-1.crt worker-1.key worker-1.kubeconfig worker-1:~/
 ```
 
@@ -99,6 +103,9 @@ scp ca.crt worker-1.crt worker-1.key worker-1.kubeconfig worker-1:~/
 ### Download and Install Worker Binaries
 
 All the following commands from here until the [verification](#verification) step must be run on `worker-1`
+
+[//]: # (host:worker-1)
+
 
 ```bash
 wget -q --show-progress --https-only --timestamping \
@@ -111,7 +118,7 @@ Reference: https://kubernetes.io/releases/download/#binaries
 
 Create the installation directories:
 
-```
+```bash
 sudo mkdir -p \
   /var/lib/kubelet \
   /var/lib/kube-proxy \
@@ -121,7 +128,7 @@ sudo mkdir -p \
 
 Install the worker binaries:
 
-```
+```bash
 {
   chmod +x kubectl kube-proxy kubelet
   sudo mv kubectl kube-proxy kubelet /usr/local/bin/
@@ -261,7 +268,7 @@ At `worker-1` node, run the following, selecting option 4
 
 ### Start the Worker Services
 On worker-1:
-```
+```bash
 {
   sudo systemctl daemon-reload
   sudo systemctl enable kubelet kube-proxy
@@ -272,6 +279,8 @@ On worker-1:
 > Remember to run the above commands on worker node: `worker-1`
 
 ## Verification
+
+[//]: # (host:master-1)
 
 Now return to the `master-1` node.
 

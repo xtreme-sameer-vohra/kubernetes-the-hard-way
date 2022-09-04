@@ -43,6 +43,8 @@ So let's get started!
 
 # Step 1 Create the Boostrap Token to be used by Nodes(Kubelets) to invoke Certificate API
 
+[//]: # (host:master-1)
+
 Run the following steps on `master-1`
 
 For the workers(kubelet) to access the Certificates API, they need to authenticate to the kubernetes api-server first. For this we create a [Bootstrap Token](https://kubernetes.io/docs/reference/access-authn-authz/bootstrap-tokens/) to be used by the kubelet
@@ -91,7 +93,7 @@ kubectl create -f bootstrap-token-07401b.yaml --kubeconfig admin.kubeconfig
 ```
 
 Things to note:
-- **expiration** - make sure its set to a date in the future.
+- **expiration** - make sure its set to a date in the future. The computed shell variable `EXPIRATION` ensures this.
 - **auth-extra-groups** - this is the group the worker nodes are part of. It must start with "system:bootstrappers:" This group does not exist already. This group is associated with this token.
 
 Once this is created the token to be used for authentication is `07401b.f395accd246ae52d`
@@ -142,7 +144,7 @@ kubectl create clusterrolebinding auto-approve-csrs-for-group \
   --kubeconfig admin.kubeconfig
 ```
 
- --------------- OR ---------------
+--------------- OR ---------------
 
 ```bash
 cat > auto-approve-csrs-for-group.yaml <<EOF
@@ -204,8 +206,9 @@ Reference: https://kubernetes.io/docs/reference/access-authn-authz/kubelet-tls-b
 
 ## Step 5 Configure the Binaries on the Worker node
 
-Going forward all activities are to be done on the `worker-2` node.
+Going forward all activities are to be done on the `worker-2` node until [step 11](#step-11-approve-server-csr).
 
+[//]: # (host:worker-2)
 
 ### Download and Install Worker Binaries
 
@@ -268,10 +271,17 @@ Set up the bootstrap kubeconfig.
 
 ```bash
 {
-  sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig set-cluster bootstrap --server='https://${LOADBALANCER}:6443' --certificate-authority=/var/lib/kubernetes/pki/ca.crt
-  sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig set-credentials kubelet-bootstrap --token=07401b.f395accd246ae52d
-  sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig set-context bootstrap --user=kubelet-bootstrap --cluster=bootstrap
-  sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig use-context bootstrap
+  sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig \
+    set-cluster bootstrap --server="https://${LOADBALANCER}:6443" --certificate-authority=/var/lib/kubernetes/pki/ca.crt
+
+  sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig \
+    set-credentials kubelet-bootstrap --token=07401b.f395accd246ae52d
+
+  sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig \
+    set-context bootstrap --user=kubelet-bootstrap --cluster=bootstrap
+
+  sudo kubectl config --kubeconfig=/var/lib/kubelet/bootstrap-kubeconfig \
+    use-context bootstrap
 }
 ```
 
@@ -436,21 +446,24 @@ At `worker-2` node, run the following, selecting option 5
 
 Now, go back to `master-1` and approve the pending kubelet-serving certificate
 
-```bash
+[//]: # (host:master-1)
+[//]: # (comment:Please now manually approve the certificate before proceeding)
+
+```
 kubectl get csr --kubeconfig admin.kubeconfig
 ```
 
-> Output
+> Output - Note the name will be different, but it will begin with `csr-`
 
 ```
-NAME        AGE     SIGNERNAME                      REQUESTOR              REQUESTEDDURATION   CONDITION
-csr-7s92j   5m18s   kubernetes.io/kubelet-serving   system:node:worker-2   <none>              Pending
+NAME        AGE   SIGNERNAME                                    REQUESTOR                 REQUESTEDDURATION   CONDITION
+csr-7k8nh   85s   kubernetes.io/kubelet-serving                 system:node:worker-2      <none>              Pending
+csr-n7z8p   98s   kubernetes.io/kube-apiserver-client-kubelet   system:bootstrap:07401b   <none>              Approved,Issued
 ```
 
+Approve the pending certificate
 
-Approve
-
-```bash
+```
 kubectl certificate approve csr-7s92j --kubeconfig admin.kubeconfig
 ```
 

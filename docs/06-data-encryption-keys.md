@@ -6,6 +6,8 @@ In this lab you will generate an encryption key and an [encryption config](https
 
 ## The Encryption Key
 
+[//]: # (host:master-1)
+
 Generate an encryption key:
 
 ```bash
