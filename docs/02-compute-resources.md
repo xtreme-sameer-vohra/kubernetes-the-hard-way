@@ -119,15 +119,15 @@ This will most likely happen at "Waiting for machine to reboot"
 
 # Pausing the Environment
 
-You do not need to complete the entire lab in one session. You may suspend and resume the environment as follows, if you need to power off your computer.
+You do not need to complete the entire lab in one session. You may shut down and resume the environment as follows, if you need to power off your computer.
 
-To pause
+To shut down. This will gracefully shut down all the VMs in the reverse order to which they were started:
 
 ```
 vagrant halt
 ```
 
-To resume
+To power on again:
 
 ```
 vagrant up
