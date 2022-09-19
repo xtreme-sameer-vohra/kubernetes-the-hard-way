@@ -10,6 +10,7 @@ Each kubeconfig requires a Kubernetes API Server to connect to. To support high 
 
 [//]: # (host:master-1)
 
+On `master-1`
 
 Get the kube-api server load-balancer IP.
 

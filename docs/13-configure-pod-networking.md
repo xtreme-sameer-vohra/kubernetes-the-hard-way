@@ -5,10 +5,11 @@ We chose to use CNI - [weave](https://www.weave.works/docs/net/latest/kubernetes
 
 ### Deploy Weave Network
 
-Deploy weave network. Run only once on the `master` node. You will see a warning, but this is OK.
+Deploy weave network. Run only once on the `master-1` node. You will see a warning, but this is OK.
 
 [//]: # (host:master-1)
 
+On `master-1`
 
 ```bash
 kubectl apply -f "https://cloud.weave.works/k8s/net?k8s-version=$(kubectl version | base64 | tr -d '\n')"

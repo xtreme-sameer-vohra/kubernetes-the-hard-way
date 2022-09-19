@@ -461,10 +461,10 @@ csr-7k8nh   85s   kubernetes.io/kubelet-serving                 system:node:work
 csr-n7z8p   98s   kubernetes.io/kube-apiserver-client-kubelet   system:bootstrap:07401b   <none>              Approved,Issued
 ```
 
-Approve the pending certificate
+Approve the pending certificate. Note that the certificate name `csr-7k8nh` will be different for you, and each time you run through.
 
 ```
-kubectl certificate approve csr-7s92j --kubeconfig admin.kubeconfig
+kubectl certificate approve csr-7k8nh --kubeconfig admin.kubeconfig
 ```
 
 
