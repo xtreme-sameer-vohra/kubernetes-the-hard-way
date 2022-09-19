@@ -19,13 +19,13 @@ Leave all settings to default.
 View the generated public key ID at:
 
 ```bash
-cat .ssh/id_rsa.pub
+cat ~/.ssh/id_rsa.pub
 ```
 
 Add this key to the local authorized_keys (`master-1`) as in some commands we scp to ourself
 
 ```bash
-cat .ssh/id_rsa.pub >> .ssh/authorized_keys
+cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 ```
 
 Copy the output into a notepad and form it into the following command
