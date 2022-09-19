@@ -1,4 +1,4 @@
-# Installing CNI on the Kubernetes Worker Nodes
+# Installing CRI on the Kubernetes Worker Nodes
 
 In this lab you will install the CNI tools on both worker nodes. Since v1.24 the use of dockershim has been fully deprecated and removed from the code base. [containerd replaces docker](https://kodekloud.com/blog/kubernetes-removed-docker-what-happens-now/) as the container runtime for Kubernetes, and it requires support from [CNI Plugins](https://github.com/containernetworking/plugins) to configure container networks, and [runc](https://github.com/opencontainers/runc) to actually do the job of running containers.
 

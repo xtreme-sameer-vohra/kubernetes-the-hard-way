@@ -38,7 +38,7 @@ Kubernetes The Hard Way guides you through bootstrapping a highly available Kube
 * [Generating the Data Encryption Config and Key](docs/06-data-encryption-keys.md)
 * [Bootstrapping the etcd Cluster](docs/07-bootstrapping-etcd.md)
 * [Bootstrapping the Kubernetes Control Plane](docs/08-bootstrapping-kubernetes-controllers.md)
-* [Installing CNI on Worker Nodes](docs/09-install-cni-workers.md)
+* [Installing CRI on Worker Nodes](docs/09-install-cri-workers.md)
 * [Bootstrapping the Kubernetes Worker Nodes](docs/10-bootstrapping-kubernetes-workers.md)
 * [TLS Bootstrapping the Kubernetes Worker Nodes](docs/11-tls-bootstrapping-kubernetes-workers.md)
 * [Configuring kubectl for Remote Access](docs/12-configuring-kubectl.md)

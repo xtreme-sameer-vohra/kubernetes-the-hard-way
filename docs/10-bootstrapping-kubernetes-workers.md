@@ -299,5 +299,5 @@ worker-1   NotReady   <none>   93s   v1.24.3
 
 The node is not ready as we have not yet installed pod networking. This comes later.
 
-Prev: [Installing CNI on the Kubernetes Worker Nodes](09-install-cni-workers.md)<br>
+Prev: [Installing CRI on the Kubernetes Worker Nodes](09-install-cri-workers.md)<br>
 Next: [TLS Bootstrapping Kubernetes Workers](11-tls-bootstrapping-kubernetes-workers.md)

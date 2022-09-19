@@ -327,4 +327,4 @@ curl  https://${LOADBALANCER}:6443/version -k
 ```
 
 Prev: [Bootstrapping the etcd Cluster](07-bootstrapping-etcd.md)<br>
-Next: [Installing CNI on the Kubernetes Worker Nodes](09-install-cni-workers.md)
+Next: [Installing CRI on the Kubernetes Worker Nodes](09-install-cri-workers.md)
