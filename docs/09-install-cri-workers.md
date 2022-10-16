@@ -12,13 +12,13 @@ The commands in this lab must be run on each worker instance: `worker-1`, and `w
 
 You can perform this step with [tmux](01-prerequisites.md#running-commands-in-parallel-with-tmux)
 
-The versions chosen here align with those that are installed by the current `kubernetes-cni` package for a v1.24 cluster.
+The versions chosen here align with those that are installed by the current `kubernetes-cni` package for a v1.25 cluster.
 
 ```bash
 {
-  CONTAINERD_VERSION=1.5.9
+  CONTAINERD_VERSION=1.6.6
   CNI_VERSION=0.8.6
-  RUNC_VERSION=1.1.1
+  RUNC_VERSION=1.1.2
 
   wget -q --show-progress --https-only --timestamping \
     https://github.com/containerd/containerd/releases/download/v${CONTAINERD_VERSION}/containerd-${CONTAINERD_VERSION}-linux-amd64.tar.gz \

@@ -47,14 +47,14 @@ Reference: [https://kubernetes.io/docs/tasks/tools/install-kubectl/](https://kub
 ### Linux
 
 ```bash
-wget https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubectl
+wget https://storage.googleapis.com/kubernetes-release/release/v1.25.2/bin/linux/amd64/kubectl
 chmod +x kubectl
 sudo mv kubectl /usr/local/bin/
 ```
 
 ### Verification
 
-Verify `kubectl` version 1.24.3 or higher is installed:
+Verify `kubectl` version 1.25.2 or higher is installed:
 
 ```
 kubectl version -o yaml
@@ -69,7 +69,7 @@ clientVersion:
   compiler: gc
   gitCommit: aef86a93758dc3cb2c658dd9657ab4ad4afc21cb
   gitTreeState: clean
-  gitVersion: v1.24.3
+  gitVersion: v1.25.2
   goVersion: go1.18.3
   major: "1"
   minor: "24"

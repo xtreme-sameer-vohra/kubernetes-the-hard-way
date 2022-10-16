@@ -20,10 +20,10 @@ Download the official Kubernetes release binaries:
 
 ```bash
 wget -q --show-progress --https-only --timestamping \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kube-apiserver" \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kube-controller-manager" \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kube-scheduler" \
-  "https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubectl"
+  "https://storage.googleapis.com/kubernetes-release/release/v1.25.2/bin/linux/amd64/kube-apiserver" \
+  "https://storage.googleapis.com/kubernetes-release/release/v1.25.2/bin/linux/amd64/kube-controller-manager" \
+  "https://storage.googleapis.com/kubernetes-release/release/v1.25.2/bin/linux/amd64/kube-scheduler" \
+  "https://storage.googleapis.com/kubernetes-release/release/v1.25.2/bin/linux/amd64/kubectl"
 ```
 
 Reference: https://kubernetes.io/releases/download/#binaries
@@ -316,7 +316,7 @@ curl  https://${LOADBALANCER}:6443/version -k
 {
   "major": "1",
   "minor": "24",
-  "gitVersion": "v1.24.3",
+  "gitVersion": "v1.25.2",
   "gitCommit": "aef86a93758dc3cb2c658dd9657ab4ad4afc21cb",
   "gitTreeState": "clean",
   "buildDate": "2022-07-13T14:23:26Z",

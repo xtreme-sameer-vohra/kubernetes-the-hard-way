@@ -25,11 +25,11 @@ The target audience for this tutorial is someone planning to support a productio
 
 Kubernetes The Hard Way guides you through bootstrapping a highly available Kubernetes cluster with end-to-end encryption between components and RBAC authentication.
 
-* [Kubernetes](https://github.com/kubernetes/kubernetes) 1.24.3
-* [Container Runtime](https://github.com/containerd/containerd) 1.5.9
+* [Kubernetes](https://github.com/kubernetes/kubernetes) 1.25.2
+* [Container Runtime](https://github.com/containerd/containerd) 1.6.6
 * [CNI Container Networking](https://github.com/containernetworking/cni) 0.8.6
 * [Weave Networking](https://www.weave.works/docs/net/latest/kubernetes/kube-addon/)
-* [etcd](https://github.com/coreos/etcd) v3.5.3
+* [etcd](https://github.com/coreos/etcd) v3.5.4
 * [CoreDNS](https://github.com/coredns/coredns) v1.8.6
 
 ### Node configuration

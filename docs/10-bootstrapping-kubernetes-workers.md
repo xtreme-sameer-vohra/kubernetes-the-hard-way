@@ -109,9 +109,9 @@ All the following commands from here until the [verification](#verification) ste
 
 ```bash
 wget -q --show-progress --https-only --timestamping \
-  https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubectl \
-  https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kube-proxy \
-  https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubelet 
+  https://storage.googleapis.com/kubernetes-release/release/v1.25.2/bin/linux/amd64/kubectl \
+  https://storage.googleapis.com/kubernetes-release/release/v1.25.2/bin/linux/amd64/kube-proxy \
+  https://storage.googleapis.com/kubernetes-release/release/v1.25.2/bin/linux/amd64/kubelet 
 ```
 
 Reference: https://kubernetes.io/releases/download/#binaries
@@ -294,7 +294,7 @@ kubectl get nodes --kubeconfig admin.kubeconfig
 
 ```
 NAME       STATUS     ROLES    AGE   VERSION
-worker-1   NotReady   <none>   93s   v1.24.3
+worker-1   NotReady   <none>   93s   v1.25.2
 ```
 
 The node is not ready as we have not yet installed pod networking. This comes later.

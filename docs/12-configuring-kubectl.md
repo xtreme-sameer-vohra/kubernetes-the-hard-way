@@ -71,8 +71,8 @@ kubectl get nodes
 
 ```
 NAME       STATUS      ROLES    AGE    VERSION
-worker-1   NotReady    <none>   118s   v1.24.3
-worker-2   NotReady    <none>   118s   v1.24.3
+worker-1   NotReady    <none>   118s   v1.25.2
+worker-2   NotReady    <none>   118s   v1.25.2
 ```
 
 Prev: [TLS Bootstrapping Kubernetes Workers](11-tls-bootstrapping-kubernetes-workers.md)</br>

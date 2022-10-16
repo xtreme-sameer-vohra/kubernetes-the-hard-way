@@ -47,8 +47,8 @@ kubectl get nodes
 
 ```
 NAME       STATUS   ROLES    AGE     VERSION
-worker-1   Ready    <none>   4m11s   v1.24.3
-worker-2   Ready    <none>   2m49s   v1.24.3
+worker-1   Ready    <none>   4m11s   v1.25.2
+worker-2   Ready    <none>   2m49s   v1.25.2
 ```
 
 Reference: https://kubernetes.io/docs/tasks/administer-cluster/network-policy-provider/weave-network-policy/#install-the-weave-net-addon

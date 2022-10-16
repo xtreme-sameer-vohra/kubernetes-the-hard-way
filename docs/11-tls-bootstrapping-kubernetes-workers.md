@@ -214,9 +214,9 @@ Going forward all activities are to be done on the `worker-2` node until [step 1
 
 ```bash
 wget -q --show-progress --https-only --timestamping \
-  https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubectl \
-  https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kube-proxy \
-  https://storage.googleapis.com/kubernetes-release/release/v1.24.3/bin/linux/amd64/kubelet
+  https://storage.googleapis.com/kubernetes-release/release/v1.25.2/bin/linux/amd64/kubectl \
+  https://storage.googleapis.com/kubernetes-release/release/v1.25.2/bin/linux/amd64/kube-proxy \
+  https://storage.googleapis.com/kubernetes-release/release/v1.25.2/bin/linux/amd64/kubelet
 ```
 
 Reference: https://kubernetes.io/releases/download/#binaries
@@ -484,8 +484,8 @@ kubectl get nodes --kubeconfig admin.kubeconfig
 
 ```
 NAME       STATUS      ROLES    AGE   VERSION
-worker-1   NotReady    <none>   93s   v1.24.3
-worker-2   NotReady    <none>   93s   v1.24.3
+worker-1   NotReady    <none>   93s   v1.25.2
+worker-2   NotReady    <none>   93s   v1.25.2
 ```
 
 Prev: [Bootstrapping the Kubernetes Worker Nodes](10-bootstrapping-kubernetes-workers.md)</br>
