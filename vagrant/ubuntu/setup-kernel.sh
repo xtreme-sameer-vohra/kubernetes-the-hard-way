@@ -4,8 +4,15 @@
 set -e
 
 # Add br_netfilter kernel module
-echo "br_netfilter" >> /etc/modules
-modprobe br_netfilter
+cat <<EOF >> /etc/modules
+ip_vs
+ip_vs_rr
+ip_vs_wrr
+ip_vs_sh
+br_netfilter
+nf_conntrack
+EOF
+systemctl restart systemd-modules-load.service
 
 # Set network tunables
 cat <<EOF >> /etc/sysctl.d/10-kubernetes.conf

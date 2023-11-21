@@ -34,7 +34,7 @@ if not os.path.isdir(docs_path):
     print (f'Invalid path: {docs_path}')
     exit(1)
 
-qs_path = os.path.abspath(os.path.join(docs_path, '../quick-steps-new'))
+qs_path = os.path.abspath(os.path.join(docs_path, '../quick-steps'))
 
 if not os.path.isdir(qs_path):
     os.makedirs(qs_path)

@@ -32,7 +32,7 @@ Install `containerd` and CNI tools, first refreshing `apt` repos to get up to da
 ```bash
 {
   sudo apt update
-  sudo apt install -y containerd kubernetes-cni kubectl
+  sudo apt install -y containerd kubernetes-cni kubectl ipvsadm ipset
 }
 ```
 
@@ -50,6 +50,7 @@ Now restart `containerd` to read the new configuration
 ```bash
 sudo systemctl restart containerd
 ```
+
 
 Prev: [Bootstrapping the Kubernetes Control Plane](08-bootstrapping-kubernetes-controllers.md)</br>
 Next: [Bootstrapping the Kubernetes Worker Nodes](10-bootstrapping-kubernetes-workers.md)
