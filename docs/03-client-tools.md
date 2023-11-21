@@ -24,13 +24,15 @@ Add this key to the local authorized_keys (`master-1`) as in some commands we sc
 cat ~/.ssh/id_rsa.pub >> ~/.ssh/authorized_keys
 ```
 
-Copy the key to the other hosts. For this step please enter `yes` when asked if you want to connect, and `vagrant` where a password is requested.
+Copy the key to the other hosts. For this step please enter `vagrant` where a password is requested.
+
+The option `-o StrictHostKeyChecking=no` tells it not to ask if you want to connect to a previously unknown host. Not best practice in the real world, but speeds things up here.
 
 ```bash
-ssh-copy-id vagrant@master-2
-ssh-copy-id vagrant@loadbalancer
-ssh-copy-id vagrant@worker-1
-ssh-copy-id vagrant@worker-2
+ssh-copy-id -o StrictHostKeyChecking=no vagrant@master-2
+ssh-copy-id -o StrictHostKeyChecking=no vagrant@loadbalancer
+ssh-copy-id -o StrictHostKeyChecking=no vagrant@worker-1
+ssh-copy-id -o StrictHostKeyChecking=no vagrant@worker-2
 ```
 
 For each host, the output should be similar to this. If it is not, then you may have entered an incorrect password. Retry the step.

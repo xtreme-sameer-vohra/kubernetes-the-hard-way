@@ -373,7 +373,7 @@ Copy the appropriate certificates and private keys to each instance:
 ```bash
 {
 for instance in master-1 master-2; do
-  scp ca.crt ca.key kube-apiserver.key kube-apiserver.crt \
+  scp -o StrictHostKeyChecking=no ca.crt ca.key kube-apiserver.key kube-apiserver.crt \
     apiserver-kubelet-client.crt apiserver-kubelet-client.key \
     service-account.key service-account.crt \
     etcd-server.key etcd-server.crt \
