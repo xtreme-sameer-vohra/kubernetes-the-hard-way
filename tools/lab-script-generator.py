@@ -79,8 +79,7 @@ for doc in glob.glob(os.path.join(docs_path, '*.md')):
         f"# {os.path.basename(doc)}",
         "#",
         "##################################################",
-        "",
-        "set -e"
+        ""
     ])
     with codecs.open(doc, "r", encoding='utf-8') as f:
         for line in f.readlines():
@@ -103,8 +102,7 @@ for doc in glob.glob(os.path.join(docs_path, '*.md')):
                                 f"# {os.path.basename(doc)}",
                                 "#",
                                 "##################################################",
-                                "",
-                                "set -e"
+                                ""
                             ]
                             file_nos = [file_no]
                         output_file = os.path.join(qs_path, f'{file_no}{chr(97 + section)}-{value}.sh')

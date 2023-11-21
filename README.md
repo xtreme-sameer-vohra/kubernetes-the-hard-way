@@ -19,7 +19,7 @@ Please note that with this particular challenge, it is all about the minute deta
 
 Note also that in developing this lab, it has been tested *many many* times! Once you have the VMs up and you start to build the cluster, if at any point something isn't working it is 99.9999% likely to be because you missed something, not a bug in the lab!
 
-Always run the `cert_verify` script at the places it suggests, and always ensure you are on the correct node when you do stuff. If `cert_verify` shows anything in red, then you have made an error in a previous step. For the master node checks, run the check on `master-1` and on `master-2`
+Always run the `cert_verify.sh` script at the places it suggests, and always ensure you are on the correct node when you do stuff. If `cert_verify.sh` shows anything in red, then you have made an error in a previous step. For the master node checks, run the check on `master-1` and on `master-2`
 
 ## Target Audience
 
@@ -29,11 +29,10 @@ The target audience for this tutorial is someone planning to support a productio
 
 Kubernetes The Hard Way guides you through bootstrapping a highly available Kubernetes cluster with end-to-end encryption between components and RBAC authentication.
 
-* [Kubernetes](https://github.com/kubernetes/kubernetes) 1.24.3
-* [Container Runtime](https://github.com/containerd/containerd) 1.5.9
-* [CNI Container Networking](https://github.com/containernetworking/cni) 0.8.6
+* [Kubernetes](https://github.com/kubernetes/kubernetes) Latest version
+* [Container Runtime](https://github.com/containerd/containerd) Latest version
 * [Weave Networking](https://www.weave.works/docs/net/latest/kubernetes/kube-addon/)
-* [etcd](https://github.com/coreos/etcd) v3.5.3
+* [etcd](https://github.com/coreos/etcd) v3.5.9
 * [CoreDNS](https://github.com/coredns/coredns) v1.9.4
 
 ### Node configuration
@@ -42,7 +41,7 @@ We will be building the following:
 
 * Two control plane nodes (`master-1` and `master-2`) running the control plane components as operating system services.
 * Two worker nodes (`worker-1` and `worker-2`)
-* One loadbalancer VM running HAProxy to balance requests between the two API servers.
+* One loadbalancer VM running [HAProxy](https://www.haproxy.org/) to balance requests between the two API servers.
 
 ## Labs
 

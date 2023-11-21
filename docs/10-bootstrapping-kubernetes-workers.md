@@ -302,7 +302,7 @@ kubectl get nodes --kubeconfig admin.kubeconfig
 
 ```
 NAME       STATUS     ROLES    AGE   VERSION
-worker-1   NotReady   <none>   93s   v1.24.3
+worker-1   NotReady   <none>   93s   v1.28.4
 ```
 
 The node is not ready as we have not yet installed pod networking. This comes later.

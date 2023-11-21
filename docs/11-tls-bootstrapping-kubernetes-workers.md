@@ -497,8 +497,8 @@ kubectl get nodes --kubeconfig admin.kubeconfig
 
 ```
 NAME       STATUS      ROLES    AGE   VERSION
-worker-1   NotReady    <none>   93s   v1.24.3
-worker-2   NotReady    <none>   93s   v1.24.3
+worker-1   NotReady    <none>   93s   v1.28.4
+worker-2   NotReady    <none>   93s   v1.28.4
 ```
 
 Prev: [Bootstrapping the Kubernetes Worker Nodes](10-bootstrapping-kubernetes-workers.md)</br>
