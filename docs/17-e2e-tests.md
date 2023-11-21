@@ -57,6 +57,10 @@ then
 watch kubectl get all -A
 ```
 
-This should take up to an hour to run. The number of tests run and passed will be displayed at the end. Expect some failures as it tries tests that aren't supported by our cluster, e.g. mounting persistent volumes using NFS.
+Observations by Alistair (KodeKloud):
+
+This should take up to an hour to run. The number of tests run and passed will be displayed at the end. Expect some failures!
+
+I am not able to say exactly why the failed tests fail. It would take days to go though the truly enormous test code base to determine why the tests that fail do so.
 
 Prev: [Smoke Test](16-smoke-test.md)
